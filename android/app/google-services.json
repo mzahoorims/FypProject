@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "1037501686902",
+    "firebase_url": "https://uninote-b65b3-default-rtdb.firebaseio.com",
+    "project_id": "uninote-b65b3",
+    "storage_bucket": "uninote-b65b3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1037501686902:android:bb94d069ceb025a0e7eb57",
+        "android_client_info": {
+          "package_name": "com.example.student_note"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAaM2ONZ3SDUrXm4qVKWmEQl0rbCHmx5TM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
