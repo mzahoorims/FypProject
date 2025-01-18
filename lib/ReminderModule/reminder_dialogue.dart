@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +7,8 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:intl/intl.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:permission_handler/permission_handler.dart';
+
+import '../test/notification_sevices.dart';
 
 class ReminderDialogue extends StatefulWidget {
   final String? reminderId;
@@ -26,9 +29,92 @@ class ReminderDialogue extends StatefulWidget {
 }
 
 class _ReminderDialogueState extends State<ReminderDialogue> {
-  final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _descriptionController = TextEditingController();
+
+  Future<void> _scheduleNotificationDialog() async {
+    DateTime now = DateTime.now();
+    DateTime? selectedDate = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 365)),
+    );
+
+    if (selectedDate != null) {
+      TimeOfDay? selectedTime = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.now(),
+      );
+
+      if (selectedTime != null) {
+        DateTime scheduledDateTime = DateTime(
+          selectedDate.year,
+          selectedDate.month,
+          selectedDate.day,
+          selectedTime.hour,
+          selectedTime.minute,
+        );
+
+        setState(() {
+          _selectedDateTime = scheduledDateTime;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "Notification scheduled for ${DateFormat('yyyy-MM-dd hh:mm a').format(scheduledDateTime)}",
+            ),
+          ),
+        );
+
+        _scheduleNotification(scheduledDateTime);
+      }
+    }
+  }
+
+  void _scheduleNotification(DateTime scheduledDateTime) {
+    String title = _titleController.text;
+    String body = _bodyController.text;
+
+    if (title.isEmpty || body.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Title and Body cannot be empty."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    Duration delay = scheduledDateTime.difference(DateTime.now());
+
+    if (delay.isNegative) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Invalid Time! Please select a future time."),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    Timer(delay, () {
+      _notificationService.sendNotification(title, body);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Your scheduled notification has been sent!"),
+          backgroundColor: Colors.green,
+        ),
+      );
+    });
+  }
+
+  final LocalNotificationService _notificationService = LocalNotificationService();
   DateTime? _selectedDateTime;
+  TextEditingController _titleController = TextEditingController();
+  TextEditingController _bodyController = TextEditingController();
+
+
   late FirebaseMessaging _firebaseMessaging;
   final FlutterLocalNotificationsPlugin _localNotificationsPlugin =
   FlutterLocalNotificationsPlugin();
@@ -43,7 +129,7 @@ class _ReminderDialogueState extends State<ReminderDialogue> {
 
     if (widget.reminderId != null) {
       _titleController.text = widget.initialTitle ?? '';
-      _descriptionController.text = widget.initialDescription ?? '';
+      _bodyController.text = widget.initialDescription ?? '';
       _selectedDateTime = widget.initialDateTime;
     }
   }
@@ -113,7 +199,7 @@ class _ReminderDialogueState extends State<ReminderDialogue> {
 
   void _saveReminder() async {
     String title = _titleController.text;
-    String description = _descriptionController.text;
+    String description = _bodyController.text;
 
     if (_selectedDateTime != null && title.isNotEmpty) {
       if (widget.reminderId == null) {
@@ -218,39 +304,30 @@ class _ReminderDialogueState extends State<ReminderDialogue> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TextField(
-              controller: _titleController,
-              decoration: const InputDecoration(
-                labelText: 'Title',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _descriptionController,
-              maxLines: 4,
-              decoration: const InputDecoration(
-                labelText: 'Description',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
+
+            Column(
               children: [
-                Expanded(
-                  child: Text(
-                    _selectedDateTime == null
-                        ? 'No date/time selected'
-                        : DateFormat('yyyy-MM-dd – HH:mm').format(_selectedDateTime!),
-                    style: const TextStyle(fontSize: 16),
+                TextField(
+                  controller: _titleController,
+                  decoration: const InputDecoration(
+                    labelText: 'Enter Notification Title',
                   ),
                 ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _bodyController,
+                  decoration: const InputDecoration(
+                    labelText: 'Enter Notification Body',
+                  ),
+                ),
+                const SizedBox(height: 20),
                 ElevatedButton(
-                  onPressed: _pickDateTime,
-                  child: const Text('Set Date/Time'),
+                  onPressed: _scheduleNotificationDialog,
+                  child: const Text("Schedule Notification"),
                 ),
               ],
             ),
+
             const Spacer(),
             Center(
               child: ElevatedButton(
