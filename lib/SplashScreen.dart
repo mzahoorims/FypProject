@@ -34,40 +34,53 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedSplashScreen(
-      duration: 6000, // Duration in milliseconds
-      splash: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              "Notes Manager",
-              style: TextStyle(
-                fontSize: 36.0,
-                color: Color(0xFF377F7F),
-                fontFamily: 'AlfaSlabOne',
-                shadows: [
-                  Shadow(
-                    offset: Offset(4.0, 4.0),
-                    blurRadius: 10.0,
-                    color: Color(0xFF000000),
-                  ),
-                ],
-              ),
+    return Stack(
+      children: [
+        // Background Image with Lightening Effect
+        Container(
+          height: MediaQuery.of(context).size.height,
+          width: MediaQuery.of(context).size.width,
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('assets/images/p4.jpg'), // Ensure this path is correct
+              fit: BoxFit.cover, // Ensures the image covers the entire screen
             ),
-            const SizedBox(height: 20), // Add some spacing between text and animation
-            Lottie.asset(
-              'assets/animation/Animation - 1717493499899.json',
-            ),
-          ],
+          ),
+          child: Container(
+            color: Colors.white.withOpacity(0.5), // Light overlay for better text visibility
+          ),
         ),
-      ),
-      nextScreen: _isLoading
-          ? Container() // Show an empty container until the token is loaded
-          : (token.isNotEmpty ? HomeScreen() : loginScreen()),
-      splashIconSize: 500,
-      splashTransition: SplashTransition.fadeTransition,
-      backgroundColor: Colors.white,
+
+        // Splash Screen Content
+        AnimatedSplashScreen(
+          duration: 6000, // Duration in milliseconds
+          splash: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  "Notes Manager",
+                  style: TextStyle(
+                    fontSize: 36.0,
+                    color: Color(0xFF377F7F),
+                    fontFamily: 'AlfaSlabOne',
+                  ),
+                ),
+                const SizedBox(height: 20), // Add some spacing between text and animation
+                Lottie.asset(
+                  'assets/animation/Animation - 1717493499899.json',
+                ),
+              ],
+            ),
+          ),
+          nextScreen: _isLoading
+              ? Container() // Show an empty container until the token is loaded
+              : (token.isNotEmpty ? HomeScreen() : loginScreen()),
+          splashIconSize: 500,
+          splashTransition: SplashTransition.fadeTransition,
+          backgroundColor: Colors.transparent, // Makes the background transparent
+        ),
+      ],
     );
   }
 }

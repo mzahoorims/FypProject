@@ -8,7 +8,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'package:student_note/ReminderModule/ReminderScreen.dart';
 import 'FileDetailScreen.dart';
-import 'package:http/http.dart'as http;
+import 'package:http/http.dart' as http;
 
 class FileScreen extends StatefulWidget {
   final String folderKey;
@@ -51,7 +51,6 @@ class _FileScreenState extends State<FileScreen> {
     final status = await Permission.storage.status;
 
     if (!status.isGranted) {
-      // Show an alert dialog if permission is not granted
       showDialog(
         context: context,
         builder: (context) {
@@ -62,16 +61,15 @@ class _FileScreenState extends State<FileScreen> {
             actions: [
               TextButton(
                 onPressed: () {
-                  Navigator.pop(context); // Close the dialog
+                  Navigator.pop(context);
                 },
                 child: const Text("Cancel"),
               ),
               TextButton(
                 onPressed: () async {
-                 // Close the dialog
                   final newStatus = await Permission.storage.request();
                   if (newStatus.isGranted) {
-                    _createAndSavePdf(fileKey, fileName, content, imageUrl); // Proceed to download
+                    _createAndSavePdf(fileKey, fileName, content, imageUrl);
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -90,59 +88,34 @@ class _FileScreenState extends State<FileScreen> {
       return;
     }
 
-    // If permission is already granted, proceed to download the file
     _createAndSavePdf(fileKey, fileName, content, imageUrl);
   }
 
-  Future<void> _createAndSavePdf(
-      String fileKey, String fileName, String content, String? imageUrl) async {
-
-    print("gggggggggggggggggggggggggggggggggg");
-    print(imageUrl);
+  Future<void> _createAndSavePdf(String fileKey, String fileName, String content, String? imageUrl) async {
     try {
       final pdf = pw.Document();
-      // Check if the imageUrl is a URL or local file path
       pw.ImageProvider? pdfImage;
 
       if (imageUrl != null && imageUrl.isNotEmpty) {
         if (imageUrl.startsWith('http')) {
-          // If it's a URL, download the image
           final response = await http.get(Uri.parse(imageUrl));
-          print("fdggggggggggggggggggggggggg");
           if (response.statusCode == 200) {
-            print("fdggggggggggggggggggggggggg");
-            // Convert the image into a format suitable for the pdf package
             final imageBytes = Uint8List.fromList(response.bodyBytes);
             pdfImage = pw.MemoryImage(imageBytes);
           } else {
-            // If the image couldn't be fetched, handle this case
-            print("Failed to load image from URL.");
             pdfImage = null;
           }
         } else {
-          print("fdggggggggggggggggggggggggg");
-          // If it's a local file path, read it directly
           final file = File(imageUrl);
           if (await file.exists()) {
-            print("fdggggggggggggggggggggggggg");
             final imageBytes = await file.readAsBytes();
             pdfImage = pw.MemoryImage(imageBytes);
           } else {
-            print("Local file path not found: $imageUrl");
             pdfImage = null;
           }
         }
       }
 
-      print(await pdfImage);
-      print(pdfImage);
-
-      // pdf.addPage(pw.Page(build: (pw.Context context) {
-      //   return pw.Center(
-      //     child: pw.Image(image),
-      //   ); // Center
-      // }));
-      // Add content to PDF
       pdf.addPage(
         pw.Page(
           build: (pw.Context context) {
@@ -150,37 +123,26 @@ class _FileScreenState extends State<FileScreen> {
               children: [
                 pw.Text(fileName, style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
                 pw.SizedBox(height: 16),
-                if (pdfImage != null)
-                  pw.Image(pdfImage), // Add image if available
-
+                if (pdfImage != null) pw.Image(pdfImage),
                 pw.Text(content, style: pw.TextStyle(fontSize: 16)),
-
               ],
             );
           },
         ),
       );
 
-      // Get external storage directory (specific for Android)
-      final directory = await getExternalStorageDirectory();
-
-      // Specify a path for the Downloads folder
       final downloadPath = Directory("/storage/emulated/0/Download/");
       if (!downloadPath.existsSync()) {
-        // Create the folder if it doesn't exist
         downloadPath.createSync();
       }
 
-      // Save the PDF file to the Downloads folder
       final file = File('${downloadPath.path}/$fileName.pdf');
       await file.writeAsBytes(await pdf.save());
-      // Open the file after saving
       OpenFile.open(file.path);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("PDF saved to Downloads: ${file.path}")),
       );
     } catch (e) {
-      print(e);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Failed to download the file.")),
       );
@@ -194,8 +156,66 @@ class _FileScreenState extends State<FileScreen> {
   }
 
   Future<void> _deleteFile(String fileKey) async {
-    await _databaseRef.child("folders/${widget.folderKey}/files/$fileKey").remove();
-    _fetchFiles();
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Confirm Deletion"),
+          content: const Text("Are you sure you want to delete this file?"),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context); // Close the dialog
+              },
+              child: const Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () async {
+                await _databaseRef.child("folders/${widget.folderKey}/files/$fileKey").remove();
+                Navigator.pop(context); // Close the dialog
+                _fetchFiles(); // Refresh the file list
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("File deleted.")),
+                );
+              },
+              child: const Text("Delete"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _deleteAllFiles() async {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Confirm Deletion"),
+          content: const Text("Are you sure you want to delete all files in this folder?"),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: const Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () async {
+                final folderRef = _databaseRef.child("folders/${widget.folderKey}/files");
+                await folderRef.remove();
+                _fetchFiles();
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("All files deleted.")),
+                );
+              },
+              child: const Text("Delete All"),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _editFileName(String fileKey, String currentName) async {
@@ -286,11 +306,9 @@ class _FileScreenState extends State<FileScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
 
-                        IconButton(onPressed: (){
+                        IconButton(onPressed: () {
                           Navigator.push(context, MaterialPageRoute(builder: (context)=>ReminderScreen()));
-                        }, icon:Icon(Icons.lock_clock)),
-
-
+                        }, icon: Icon(Icons.lock_clock)),
 
                         IconButton(
                           icon: const Icon(Icons.edit, color: Colors.blue),
@@ -314,6 +332,18 @@ class _FileScreenState extends State<FileScreen> {
         onPressed: _addFile,
         child: const Icon(Icons.add),
       ),
+      persistentFooterButtons: [
+        Padding(
+          padding: const EdgeInsets.all(10),
+          child: ElevatedButton(
+            onPressed: _deleteAllFiles,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            child: const Text('Delete All Files'),
+          ),
+        ),
+      ],
     );
   }
 }

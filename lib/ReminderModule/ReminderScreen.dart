@@ -13,7 +13,9 @@ class ReminderScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.blue.shade50,
       appBar: AppBar(
+        backgroundColor: Colors.blue.shade50,
         title: const Text('Reminders'),
         centerTitle: true,
       ),
