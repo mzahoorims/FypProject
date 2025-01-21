@@ -42,27 +42,28 @@ class _RegScreenState extends State<RegScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // Background Image
+          // Background Color with Lightening Overlay Effect (No Image)
           Container(
             height: MediaQuery.of(context).size.height,
             width: MediaQuery.of(context).size.width,
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/images/p3.jpg'),
-                fit: BoxFit.cover,
-              ),
-            ),
-            child: Container(color: Colors.white.withOpacity(0.5)),
+            color: Colors.white.withOpacity(0.5), // Lightening overlay effect
           ),
 
           // Main Content
           SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 50.0),
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 80.0),
             child: Column(
               children: [
                 const SizedBox(height: 20),
-                const Text("Sign Up", style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: Colors.black)),
-                const SizedBox(height: 70),
+                const Text(
+                  "Sign Up",
+                  style: TextStyle(
+                      fontSize: 38.0,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black
+                  ),
+                ),
+                const SizedBox(height: 80),
 
                 _buildTextField(_usernameController, Icons.person, 'User name'),
                 const SizedBox(height: 20),
@@ -76,11 +77,24 @@ class _RegScreenState extends State<RegScreen> {
                 _buildSignUpButton(),
                 const SizedBox(height: 15),
 
-                const Text("Already have an account?", style: TextStyle(fontSize: 16.0, color: Colors.black)),
+                const Text(
+                  "Already have an account?",
+                  style: TextStyle(fontSize: 16.0, color: Colors.black),
+                ),
                 const SizedBox(height: 5),
                 GestureDetector(
-                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const loginScreen())),
-                  child: const Text("Sign In", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0, color: Colors.black)),
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const loginScreen()),
+                  ),
+                  child: const Text(
+                    "Sign In",
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16.0,
+                        color: Colors.black
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -178,10 +192,10 @@ class _RegScreenState extends State<RegScreen> {
       onTap: _signUp,
       child: Container(
         height: 55.0,
-        width: 378.0,
+        width: double.infinity,
         decoration: BoxDecoration(
-          color: const Color(0xFF377F7F),
-          borderRadius: BorderRadius.circular(5),
+          color: const Color(0xFF1877F2),
+          borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.5),
@@ -192,7 +206,10 @@ class _RegScreenState extends State<RegScreen> {
           ],
         ),
         child: const Center(
-          child: Text("Sign Up", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+          child: Text(
+            "Sign Up",
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+          ),
         ),
       ),
     );
@@ -294,14 +311,7 @@ class _RegScreenState extends State<RegScreen> {
           _emailError = "⚠️ Email is already in use. Please log in.";
         });
 
-        Fluttertoast.showToast(
-          msg: "⚠️ Email is already in use. Please log in.",
-          toastLength: Toast.LENGTH_LONG,
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.red,
-          textColor: Colors.white,
-          fontSize: 16.0,
-        );
+
       } else {
         Fluttertoast.showToast(
           msg: "❌ Error: ${e.message}",

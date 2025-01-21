@@ -60,8 +60,10 @@ dependencies:
   timezone: ^0.10.0
   fluttertoast: ^8.2.10
   font_awesome_flutter: ^10.8.0
-  image_cropper: ^8.1.0
+  image_cropper: ^5.0.0
   googleapis_auth: ^1.6.0
+  image: ^4.0.17
+
 
 
 dev_dependencies:

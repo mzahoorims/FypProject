@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'FolderScreen/FolderScreen.dart';
 import 'ReminderModule/ReminderScreen.dart';
 import 'loginScreen.dart';
@@ -31,19 +32,31 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Confirm Logout', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          content: const Text('Do you want to logout?', style: TextStyle(fontSize: 16)),
+          title: const Text(
+            'Confirm Logout',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          content: const Text(
+            'Do you want to logout?',
+            style: TextStyle(fontSize: 16),
+          ),
           actions: [
             TextButton(
-              child: const Text('Cancel', style: TextStyle(fontSize: 16, color: Colors.red)),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(fontSize: 16, color: Colors.red),
+              ),
               onPressed: () {
                 Navigator.of(context).pop(); // Close the dialog
               },
             ),
             TextButton(
-              child: const Text('Confirm', style: TextStyle(fontSize: 16, color: Colors.green)),
+              child: const Text(
+                'Confirm',
+                style: TextStyle(fontSize: 16, color: Colors.green),
+              ),
               onPressed: () {
-                _logout(); // Handle the logout action
+                _logout(context); // Clear shared preferences and log out
               },
             ),
           ],
@@ -52,20 +65,26 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     );
   }
 
-  void _logout() async {
+  Future<void> _logout(BuildContext context) async {
     try {
-      await FirebaseAuth.instance.signOut();
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.clear(); // Clear all saved preferences
+
+      await FirebaseAuth.instance.signOut(); // Sign out from Firebase
+
+      // Navigate to the login screen
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const loginScreen()),
+        MaterialPageRoute(builder: (context) => const loginScreen()), // Ensure `LoginScreen` is correctly imported
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error logging out: $e')),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error logging out: $e')),
+        );
+      }
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(

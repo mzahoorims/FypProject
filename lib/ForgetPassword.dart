@@ -16,25 +16,14 @@ class _ForgetPasswordState extends State<ForgetPassword> {
     double screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
+      backgroundColor: Colors.white, // Set a clean white background color
       body: Stack(
         children: [
-          // 🔹 Full-Screen Background Image
+          // 🔹 Full-Screen Background Color
           Container(
             width: screenWidth,
             height: screenHeight,
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/images/p3.jpg'), // Ensure correct image path
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-
-          // 🔹 Overlay for better readability
-          Container(
-            width: screenWidth,
-            height: screenHeight,
-            color: Colors.white.withOpacity(0.7),
+            color: Colors.white, // Clean white background without an image
           ),
 
           // 🔹 Content on top of the background
@@ -56,11 +45,11 @@ class _ForgetPasswordState extends State<ForgetPassword> {
 
                 const SizedBox(height: 50),
 
-                // Lock Icon
+                // Lock Icon (Centered)
                 const Icon(
                   Icons.lock_reset_rounded,
                   size: 80,
-                  color: Colors.black,
+                  color: Color(0xFF377F7F), // Primary color for consistency
                 ),
 
                 const SizedBox(height: 20),
@@ -90,9 +79,9 @@ class _ForgetPasswordState extends State<ForgetPassword> {
 
                 const SizedBox(height: 30),
 
-                // 🔹 Password Input Field (Width Set)
+                // 🔹 New Password Input Field (Width Set)
                 SizedBox(
-                  width: screenWidth * 0.8, // Ensures consistent width
+                  width: screenWidth * 0.85, // Ensure consistent width for form fields
                   child: TextField(
                     obscureText: _obscurePassword,
                     style: const TextStyle(color: Colors.black),
@@ -103,10 +92,10 @@ class _ForgetPasswordState extends State<ForgetPassword> {
                       hintStyle: const TextStyle(color: Colors.black54),
                       filled: true,
                       fillColor: Colors.white.withOpacity(0.9),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       focusedBorder: OutlineInputBorder(
-                        borderSide: const BorderSide(color: Colors.black, width: 2),
-                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: Color(0xFF377F7F), width: 2),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       suffixIcon: IconButton(
                         icon: Icon(
@@ -125,19 +114,19 @@ class _ForgetPasswordState extends State<ForgetPassword> {
 
                 const SizedBox(height: 40),
 
-                // 🔹 Reset Password Button (Same Width)
+                // 🔹 Reset Password Button (Same Width as the TextField)
                 SizedBox(
-                  width: screenWidth * 0.8, // Ensures button width matches text field
-                  height: 53,
+                  width: screenWidth * 0.85, // Matches the width of the text field
+                  height: 55,
                   child: ElevatedButton(
                     onPressed: () {
-                      // Add logic for password reset
+                      // Add your logic for password reset here
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF377F7F),
+                      backgroundColor: Color(0xFF377F7F), // Primary color for consistency
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       elevation: 5,
                     ),
@@ -157,7 +146,7 @@ class _ForgetPasswordState extends State<ForgetPassword> {
                   },
                   child: const Text(
                     "Back to Login",
-                    style: TextStyle(fontSize: 16, color: Colors.black, fontWeight: FontWeight.w600),
+                    style: TextStyle(fontSize: 16, color: Color(0xFF377F7F), fontWeight: FontWeight.w600),
                   ),
                 ),
               ],

@@ -13,7 +13,6 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> {
   String token = '';
-  bool _isLoading = true; // Flag to control loading state
 
   @override
   void initState() {
@@ -28,59 +27,49 @@ class _SplashScreenState extends State<SplashScreen> {
     print('Token loaded: $token');
 
     setState(() {
-      _isLoading = false; // Update the state to stop loading
+      // Update the state after loading the token
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        // Background Image with Lightening Effect
-        Container(
-          height: MediaQuery.of(context).size.height,
-          width: MediaQuery.of(context).size.width,
-          decoration: const BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage('assets/images/p4.jpg'), // Ensure this path is correct
-              fit: BoxFit.cover, // Ensures the image covers the entire screen
-            ),
-          ),
-          child: Container(
-            color: Colors.white.withOpacity(0.5), // Light overlay for better text visibility
-          ),
-        ),
-
-        // Splash Screen Content
-        AnimatedSplashScreen(
-          duration: 6000, // Duration in milliseconds
-          splash: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                  "Notes Manager",
-                  style: TextStyle(
-                    fontSize: 36.0,
-                    color: Color(0xFF377F7F),
-                    fontFamily: 'AlfaSlabOne',
+    return Scaffold(
+      backgroundColor: Colors.white, // Set white background color
+      body: Stack(
+        children: [
+          // Splash Screen Content
+          AnimatedSplashScreen(
+            duration: 6000, // Duration in milliseconds
+            splash: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center, // Center the content
+                children: [
+                  const Text(
+                    "Notes Manager",
+                    style: TextStyle(
+                      fontSize: 36.0,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF377F7F),
+                      fontFamily: 'AlfaSlabOne',
+                    ),
                   ),
-                ),
-                const SizedBox(height: 20), // Add some spacing between text and animation
-                Lottie.asset(
-                  'assets/animation/Animation - 1717493499899.json',
-                ),
-              ],
+                  const SizedBox(height: 30), // Add more spacing between text and animation
+                  Lottie.asset(
+                    'assets/animation/Animation - 1717493499899.json',
+                    width: 200, // Set width for better alignment
+                    height: 200, // Set height for better alignment
+                  ),
+                ],
+              ),
             ),
+            nextScreen: token.isNotEmpty ? HomeScreen() : loginScreen(),
+            splashIconSize: 500,
+            splashTransition: SplashTransition.fadeTransition,
+            backgroundColor: Colors.transparent, // Makes the background transparent
           ),
-          nextScreen: _isLoading
-              ? Container() // Show an empty container until the token is loaded
-              : (token.isNotEmpty ? HomeScreen() : loginScreen()),
-          splashIconSize: 500,
-          splashTransition: SplashTransition.fadeTransition,
-          backgroundColor: Colors.transparent, // Makes the background transparent
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

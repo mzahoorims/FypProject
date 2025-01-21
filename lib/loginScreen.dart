@@ -25,111 +25,88 @@ class _loginScreenState extends State<loginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          // Background Image with Lightening Effect
-          Container(
-            height: MediaQuery.of(context).size.height,
-            width: MediaQuery.of(context).size.width,
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage("assets/images/p3.jpg"), // Ensure the correct path
-                fit: BoxFit.cover,
+      backgroundColor: Colors.white, // Set white background
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 180.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Facebook-like login title with bold font
+              const Text(
+                "Login",
+                style: TextStyle(
+                  fontSize: 38.0,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
               ),
-            ),
-            child: Container(
-              color: Colors.white.withOpacity(0.5), // Lightening overlay effect
-            ),
-          ),
+              const SizedBox(height: 40),
 
-          // Login form
-          SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 80.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    height: 20,
-                  ),
-                  // Login title
-                  const Text(
-                    "Login",
-                    style: TextStyle(
-                      fontSize: 38.0,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black
+              // Email field styled similarly to Facebook
+              _buildTextField(_emailController, Icons.email_sharp, 'Enter email'),
+              const SizedBox(height: 20),
 
-                    ),
-                  ),
-                  const SizedBox(height: 80),
+              // Password field styled similarly to Facebook
+              _buildPasswordField(_passwordController, 'Password'),
+              const SizedBox(height: 10),
 
-                  // Email field
-                  _buildTextField(_emailController, Icons.email_sharp, 'Enter email'),
-                  const SizedBox(height: 20),
-
-                  // Password field
-                  _buildPasswordField(_passwordController, 'Password'),
-                  const SizedBox(height: 10),
-
-                  // Forgot password
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const ForgetPassword(),
-                          ),
-                        );
-                      },
-                      child: const Text(
-                        'Forgot Password?',
-                        style: TextStyle(
-                          fontSize: 16.0,
-                          color: Colors.black
-                        ),
+              // Forgot password link
+              Align(
+                alignment: Alignment.centerRight,
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ForgetPassword(),
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 80),
-
-                  // Sign in button
-                  _buildSignInButton(),
-                  const SizedBox(height: 15),
-
-                  // Sign up prompt
-                  const Text(
-                    "Don't have an account?",
+                    );
+                  },
+                  child: const Text(
+                    'Forgot Password?',
                     style: TextStyle(
                       fontSize: 16.0,
-                      color: Colors.black
+                      color: Colors.black,
                     ),
                   ),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const RegScreen(),
-                        ),
-                      );
-                    },
-                    child: const Text(
-                      "Sign up",
-                      style: TextStyle(
-                        fontSize: 18.0,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
+              const SizedBox(height: 80),
+
+              // Sign in button styled like Facebook
+              _buildSignInButton(),
+              const SizedBox(height: 15),
+
+              // Sign up prompt (for new users)
+              const Text(
+                "Don't have an account?",
+                style: TextStyle(
+                  fontSize: 16.0,
+                  color: Colors.black,
+                ),
+              ),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const RegScreen(),
+                    ),
+                  );
+                },
+                child: const Text(
+                  "Sign up",
+                  style: TextStyle(
+                    fontSize: 18.0,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1877F2), // Facebook blue color
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -139,12 +116,12 @@ class _loginScreenState extends State<loginScreen> {
       controller: controller,
       decoration: InputDecoration(
         enabledBorder: OutlineInputBorder(
-          borderSide: const BorderSide(width: 3, color: Colors.black12),
+          borderSide: const BorderSide(width: 2, color: Colors.black12),
           borderRadius: BorderRadius.circular(10.0),
         ),
         filled: true,
-        fillColor: Colors.white.withOpacity(0.8),
-        suffixIcon: Icon(icon, color: Colors.grey),
+        fillColor: Colors.white.withOpacity(0.9),
+        prefixIcon: Icon(icon, color: Colors.grey),
         hintText: hint,
       ),
     );
@@ -156,11 +133,11 @@ class _loginScreenState extends State<loginScreen> {
       obscureText: !_isPasswordVisible,
       decoration: InputDecoration(
         enabledBorder: OutlineInputBorder(
-          borderSide: const BorderSide(width: 3, color: Colors.black12),
+          borderSide: const BorderSide(width: 2, color: Colors.black12),
           borderRadius: BorderRadius.circular(10.0),
         ),
         filled: true,
-        fillColor: Colors.white.withOpacity(0.8),
+        fillColor: Colors.white.withOpacity(0.9),
         suffixIcon: IconButton(
           icon: Icon(
             _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
@@ -184,14 +161,14 @@ class _loginScreenState extends State<loginScreen> {
         height: 55.0,
         width: double.infinity,
         decoration: BoxDecoration(
-          color: const Color(0xFF377F7F),
+          color: const Color(0xFF1877F2), // Facebook blue color
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.5),
+              color: Colors.black.withOpacity(0.2),
               spreadRadius: 2,
               blurRadius: 5,
-              offset: const Offset(3, 3),
+              offset: const Offset(0, 3),
             ),
           ],
         ),

@@ -44,8 +44,16 @@ class _FileScreenState extends State<FileScreen> {
         })
             .toList();
       });
+
+      // Safe access to the first item in the list
+      if (files.isNotEmpty) {
+        print(files[0]); // Safe access
+      } else {
+        print("List is empty");
+      }
     }
   }
+
 
   Future<void> _downloadFile(String fileKey, String fileName, String content, String? imageUrl) async {
     final status = await Permission.storage.status;
@@ -73,8 +81,7 @@ class _FileScreenState extends State<FileScreen> {
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text("Permission denied. Cannot download the file."),
-                      ),
+                          content: Text("Permission denied. Cannot download the file.")),
                     );
                   }
                   Navigator.pop(context);
@@ -258,7 +265,8 @@ class _FileScreenState extends State<FileScreen> {
       appBar: AppBar(
           backgroundColor: Colors.blue,
           title: Center(child: const Text("Files Screen"))),
-      backgroundColor: Colors.blue.shade50,
+
+
       body: files.isEmpty
           ? const Center(child: Text("No files available"))
           : GridView.builder(
@@ -290,8 +298,39 @@ class _FileScreenState extends State<FileScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Center(child: const Icon(Icons.insert_drive_file, size: 48)),
-                    const SizedBox(height: 14),
+                    // Show image if available, otherwise show content or icon
+                    Expanded(
+                      child: file['image'] != null && file['image'].isNotEmpty
+                          ? (file['image']!.startsWith('http')
+                          ? Image.network(
+                        file['image'],
+                        width: double.infinity,  // Make sure it takes full width
+                        height: double.infinity, // Make sure it takes full height
+                        fit: BoxFit.cover,        // Ensure the image fills the space properly
+                      )
+                          : Image.file(
+                        File(file['image']),
+                        width: double.infinity,  // Make sure it takes full width
+                        height: double.infinity, // Make sure it takes full height
+                        fit: BoxFit.cover,        // Fill the available space while maintaining aspect ratio
+                      ))
+                          : file['content'] != null && file['content'].isNotEmpty
+                          ? Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text(
+                          file['content'],
+                          style: const TextStyle(color: Colors.black),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center, // Center the text if no image
+                        ),
+                      )
+                          : const Center(
+                        child: Icon(Icons.insert_drive_file, size: 48),
+                      ), // Fallback icon
+                    ),
+
+
                     Center(
                       child: Text(
                         file['name'],
@@ -300,16 +339,12 @@ class _FileScreenState extends State<FileScreen> {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const Spacer(),
-
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-
                         IconButton(onPressed: () {
                           Navigator.push(context, MaterialPageRoute(builder: (context)=>ReminderScreen()));
                         }, icon: Icon(Icons.lock_clock)),
-
                         IconButton(
                           icon: const Icon(Icons.edit, color: Colors.blue),
                           onPressed: () =>
