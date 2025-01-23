@@ -25,12 +25,12 @@ class FileDetailScreen extends StatefulWidget {
 
 class _FileDetailScreenState extends State<FileDetailScreen> {
   final _databaseRef = FirebaseDatabase.instance.ref();
-  List<String> imageUrls = [];
-  List<int> rotationAngles = [];
-  List<TextEditingController> textControllers = [];
+  List<String> imageUrls = []; // Use a dynamic list to support removals
+  List<int> rotationAngles = []; // Use a dynamic list to support removals
+  List<TextEditingController> textControllers = []; // Use a dynamic list to support removals
   bool isEditing = false;
   bool isDownloading = false;
-  int zoomLevel = 1;
+  int zoomLevel = 1; // Track zoom level for each image
 
   @override
   void initState() {
@@ -61,7 +61,11 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("File updated successfully!")),
     );
+
+    // REMOVE THIS LINE:
+    // Navigator.pop(context);
   }
+
 
   Future<void> _pickImages() async {
     final pickedFiles = await ImagePicker().pickMultiImage();
@@ -70,6 +74,7 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
         imageUrls = pickedFiles.map((file) => file.path).toList();
         rotationAngles = List.filled(imageUrls.length, 0);
         textControllers = List.generate(imageUrls.length, (index) => TextEditingController());
+        Navigator.pop(context);
       });
     }
   }
@@ -79,6 +84,7 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
       imageUrls.clear();
       rotationAngles.clear();
       textControllers.clear();
+      Navigator.pop(context);
     });
   }
 
@@ -86,14 +92,21 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
     setState(() {
       rotationAngles[index] = (rotationAngles[index] + 90) % 360;
     });
-    _saveFileDetails(); // Save the rotated state to Firebase
+    // _saveFileDetails(); // Save the rotated state to Firebase
   }
 
-  Future<void> _cropImage(int index) async {
+  void _cropImage(int index) async {
     try {
-      File originalFile = File(imageUrls[index]); // Load the image file
-      Uint8List imageBytes = await originalFile.readAsBytes(); // Convert to Uint8List
+      setState(() {
+        if (zoomLevel < 3) {
+          zoomLevel += 1; // Zoom in
+        } else if (zoomLevel == 3) {
+          zoomLevel--; // Zoom out
+        }
+      });
 
+      File originalFile = File(imageUrls[index]);
+      Uint8List imageBytes = await originalFile.readAsBytes();
       img.Image? image = img.decodeImage(Uint8List.fromList(imageBytes));
 
       if (image == null) {
@@ -101,33 +114,27 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
         return;
       }
 
-      // Get user choice (rectangle or square)
       String? cropShape = await _showCropDialog();
-      if (cropShape == null) return; // User canceled
+      if (cropShape == null) return;
+
+      if (cropShape == "Reset") {
+        setState(() {
+          imageUrls[index] = originalFile.path;
+          rotationAngles[index] = 0;
+          zoomLevel = 1; // Reset zoom level
+        });
+        return;
+      }
+
 
       int width = image.width;
       int height = image.height;
+      int cropWidth = (width * 0.8).toInt();
+      int cropHeight = (height * 0.6).toInt();
+      int offsetX = ((width - cropWidth) / 2).toInt();
+      int offsetY = ((height - cropHeight) / 2).toInt();
 
-      // Define cropping region based on user choice
-      int cropWidth, cropHeight, offsetX, offsetY;
-
-      if (cropShape == "Rectangle") {
-        cropWidth = (width * 0.8).toInt();
-        cropHeight = (height * 0.6).toInt(); // More rectangular
-      } else {
-        // Square cropping
-        int minSize = (width < height ? width : height) * 0.8.toInt();
-        cropWidth = minSize;
-        cropHeight = minSize;
-      }
-
-      offsetX = ((width - cropWidth) / 2).toInt();
-      offsetY = ((height - cropHeight) / 2).toInt();
-
-      // Perform cropping
       img.Image croppedImage = img.copyCrop(image, x: offsetX, y: offsetY, width: cropWidth, height: cropHeight);
-
-      // Convert back to file
       File croppedFile = File(originalFile.path.replaceAll('.jpg', '_cropped.jpg'))
         ..writeAsBytesSync(img.encodeJpg(croppedImage));
 
@@ -148,73 +155,26 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
     }
   }
 
-  // New method for cropping out an image (cropping a portion of the image)
-  // New method for cropping out an image (zooming out by reducing the crop area)
-  Future<void> _cropOutImage(int index) async {
-    try {
-      File originalFile = File(imageUrls[index]); // Load the image file
-      Uint8List imageBytes = await originalFile.readAsBytes(); // Convert to Uint8List
 
-      img.Image? image = img.decodeImage(Uint8List.fromList(imageBytes));
-
-      if (image == null) {
-        print("Failed to decode image.");
-        return;
-      }
-
-      int width = image.width;
-      int height = image.height;
-
-      // Let's crop a smaller 30% portion from the center to simulate "zoom out"
-      int cropWidth = (width * 0.3).toInt();  // 30% of original width
-      int cropHeight = (height * 0.3).toInt(); // 30% of original height
-
-      int offsetX = ((width - cropWidth) / 2).toInt();
-      int offsetY = ((height - cropHeight) / 2).toInt();
-
-      // Perform cropping
-      img.Image croppedImage = img.copyCrop(image, x: offsetX, y: offsetY, width: cropWidth, height: cropHeight);
-
-      // Convert back to file
-      File croppedFile = File(originalFile.path.replaceAll('.jpg', '_cropped_out.jpg'))
-        ..writeAsBytesSync(img.encodeJpg(croppedImage));
-
-      if (croppedFile.existsSync()) {
-        setState(() {
-          imageUrls[index] = croppedFile.path;  // Update image with the zoomed-out version
-        });
-      } else {
-        print("Cropping out failed.");
-      }
-    } catch (e) {
-      print("Error during cropping out: $e");
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to crop out image: $e")),
-        );
-      }
-    }
-  }
-
-
-  // Show a dialog to let the user choose crop shape
+  // Show a dialog to let the user choose crop shape, zoom out or reset the image
   Future<String?> _showCropDialog() async {
     return await showDialog<String>(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Choose Crop Shape"),
+          title: Text("Choose Crop Option"),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                title: Text("Rectangle"),
+                title: Text("Crop Image"),
                 onTap: () => Navigator.of(context).pop("Rectangle"),
               ),
               ListTile(
-                title: Text("Square"),
-                onTap: () => Navigator.of(context).pop("Square"),
+                title: Text("Reset"),
+                onTap: () => Navigator.of(context).pop("Reset"),  // Reset the image to its original state
               ),
+
             ],
           ),
         );
@@ -222,9 +182,20 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
     );
   }
 
+  // Delete a specific image
+  void _deleteImage(int index) {
+    setState(() {
+      imageUrls.removeAt(index);
+      rotationAngles.removeAt(index);
+      textControllers.removeAt(index);
+    });
+    _saveFileDetails(); // Update the Firebase database after deletion
+  }
+
   Future<void> _generatePdf() async {
     setState(() {
       isDownloading = true;
+      Navigator.pop(context);
     });
 
     final pdf = pw.Document();
@@ -243,7 +214,7 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
             final image = File(imageUrls[i]).readAsBytesSync();
             final rotatedImage = pw.Transform.rotate(
               angle: (rotationAngles[i] * math.pi / 180),
-              child: pw.Image(pw.MemoryImage(image), width: 400, height: 400, fit: pw.BoxFit.contain),
+              child: pw.Image(pw.MemoryImage(image), width: 1000, height: 400, fit: pw.BoxFit.contain),
             );
 
             content.add(rotatedImage);
@@ -271,7 +242,50 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("File Details")),
+      appBar: AppBar(
+        title: const Text("File Details"),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.more_vert),
+            onPressed: () {
+              // Show the alert dialog when the 3-dot icon is clicked
+              showDialog(
+                context: context,
+                builder: (BuildContext context) {
+                  return AlertDialog(
+                    title: Text("Options"),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextButton(
+                          onPressed: _pickImages,
+                          child: const Text("Pick Images"),
+                        ),
+                        TextButton(
+                          onPressed: _saveFileDetails,
+                          child: const Text("Save"),
+                        ),
+                        TextButton(
+                          onPressed: _clearData,
+                          child: const Text("Clear"),
+                        ),
+                        TextButton(
+                          onPressed: _generatePdf,
+                          child: const Text("Download PDF"),
+                        ),
+                        TextButton(
+                          onPressed: () => setState(() => isEditing = !isEditing),
+                          child: Text(isEditing ? "Cancel Edit" : "Edit"),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
@@ -292,8 +306,8 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
                       InteractiveViewer(
                         panEnabled: true, // Allow panning
                         scaleEnabled: true, // Allow scaling (zoom)
-                        minScale: 1.0, // Minimum zoom level
-                        maxScale: 4.0, // Maximum zoom level
+                        minScale: zoomLevel == 1 ? 1.0 : 3.0, // Minimum zoom level
+                        maxScale: zoomLevel == 1 ? 4.0 : 9.0, // Maximum zoom level (based on zoomLevel)
                         child: Transform.rotate(
                           angle: rotationAngles[index] * math.pi / 180,
                           child: SizedBox(
@@ -315,40 +329,18 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
                             onPressed: () => _cropImage(index),
                           ),
                           IconButton(
-                            icon: Icon(Icons.crop_outlined), // New "Crop Out" icon
-                            onPressed: () => _cropOutImage(index), // New method for cropping out
+                            icon: Icon(Icons.delete),
+                            onPressed: () => _deleteImage(index),
                           ),
                         ],
                       ),
                       const SizedBox(height: 10),
                     ],
                   )),
-
                 )
               else
                 const Text("No images selected"),
-
               const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton(onPressed: _pickImages, child: const Text("Pick Images")),
-                  ElevatedButton(onPressed: _saveFileDetails, child: const Text("Save")),
-                  ElevatedButton(onPressed: _clearData, child: const Text("Clear")),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton(onPressed: _generatePdf, child: const Text("Download PDF")),
-                  ElevatedButton(
-                    onPressed: () => setState(() => isEditing = !isEditing),
-                    child: Text(isEditing ? "Cancel" : "Edit"),
-                  ),
-                ],
-              ),
             ],
           ),
         ),
