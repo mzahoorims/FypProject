@@ -23,11 +23,14 @@ class _FileScreenState extends State<FileScreen> {
   final _databaseRef = FirebaseDatabase.instance.ref();
   List<Map<String, dynamic>> files = [];
   final TextEditingController _editFileController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController(); // For search bar
+  List<Map<String, dynamic>> filteredFiles = []; // Files after applying search filter
 
   @override
   void initState() {
     super.initState();
     _fetchFiles();
+    _searchController.addListener(_filterFiles); // Add listener to search bar
   }
 
   Future<void> _fetchFiles() async {
@@ -43,17 +46,20 @@ class _FileScreenState extends State<FileScreen> {
           "image": entry.value['image'],
         })
             .toList();
+        filteredFiles = List.from(files); // Initialize filteredFiles
       });
-
-      // Safe access to the first item in the list
-      if (files.isNotEmpty) {
-        print(files[0]); // Safe access
-      } else {
-        print("List is empty");
-      }
     }
   }
 
+  // Filter files based on search query
+  void _filterFiles() {
+    String query = _searchController.text.toLowerCase();
+    setState(() {
+      filteredFiles = files.where((file) {
+        return file['name'].toLowerCase().contains(query); // Case-insensitive search
+      }).toList();
+    });
+  }
 
   Future<void> _downloadFile(String fileKey, String fileName, String content, String? imageUrl) async {
     final status = await Permission.storage.status;
@@ -263,11 +269,24 @@ class _FileScreenState extends State<FileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-          backgroundColor: Colors.blue,
-          title: Center(child: const Text("Files Screen"))),
-
-
-      body: files.isEmpty
+        backgroundColor: Colors.blue,
+        title: Center(child: const Text("Files Screen")),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: IconButton(
+              icon: Icon(Icons.search),
+              onPressed: () {
+                showSearch(
+                  context: context,
+                  delegate: FileSearchDelegate(files: filteredFiles),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+      body: filteredFiles.isEmpty
           ? const Center(child: Text("No files available"))
           : GridView.builder(
         padding: const EdgeInsets.all(18),
@@ -276,9 +295,9 @@ class _FileScreenState extends State<FileScreen> {
           crossAxisSpacing: 8,
           mainAxisSpacing: 8,
         ),
-        itemCount: files.length,
+        itemCount: filteredFiles.length,
         itemBuilder: (context, index) {
-          final file = files[index];
+          final file = filteredFiles[index];
           return GestureDetector(
             onTap: () {
               Navigator.push(
@@ -329,8 +348,6 @@ class _FileScreenState extends State<FileScreen> {
                         child: Icon(Icons.insert_drive_file, size: 48),
                       ), // Fallback icon
                     ),
-
-
                     Center(
                       child: Text(
                         file['name'],
@@ -370,15 +387,87 @@ class _FileScreenState extends State<FileScreen> {
       persistentFooterButtons: [
         Padding(
           padding: const EdgeInsets.all(10),
-          child: ElevatedButton(
+          child: IconButton(
+            icon: Icon(Icons.delete_forever),
             onPressed: _deleteAllFiles,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
-            child: const Text('Delete All Files'),
           ),
-        ),
+        )
       ],
+    );
+  }
+}
+
+class FileSearchDelegate extends SearchDelegate<String> {
+  final List<Map<String, dynamic>> files;
+
+  FileSearchDelegate({required this.files});
+
+  @override
+  Widget? buildLeading(BuildContext context) {
+    return IconButton(
+      icon: const Icon(Icons.arrow_back),
+      onPressed: () {
+        close(context, "");
+      },
+    );
+  }
+
+  @override
+  List<Widget> buildActions(BuildContext context) {
+    return [
+      IconButton(
+        icon: const Icon(Icons.clear),
+        onPressed: () {
+          query = '';
+        },
+      ),
+    ];
+  }
+
+  @override
+  Widget buildResults(BuildContext context) {
+    final results = files.where((file) {
+      return file['name'].toLowerCase().contains(query.toLowerCase());
+    }).toList();
+    return ListView(
+      children: results
+          .map<Widget>(
+            (file) => ListTile(
+          title: Text(file['name']),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => FileDetailScreen(
+                  folderKey: '',
+                  fileKey: file['key'],
+                ),
+              ),
+            );
+          },
+        ),
+      )
+          .toList(),
+    );
+  }
+
+  @override
+  Widget buildSuggestions(BuildContext context) {
+    final suggestions = files.where((file) {
+      return file['name'].toLowerCase().contains(query.toLowerCase());
+    }).toList();
+    return ListView(
+      children: suggestions
+          .map<Widget>(
+            (file) => ListTile(
+          title: Text(file['name']),
+          onTap: () {
+            query = file['name'];
+            showResults(context);
+          },
+        ),
+      )
+          .toList(),
     );
   }
 }

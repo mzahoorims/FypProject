@@ -24,13 +24,21 @@ class FileDetailScreen extends StatefulWidget {
 }
 
 class _FileDetailScreenState extends State<FileDetailScreen> {
+  late img.Image _image;
+  late File _imageFile;
+  Rect _cropRect = Rect.fromLTWH(50, 50, 200, 200); // Default crop area
+  bool _isDragging = false;
+  Offset _dragStart = Offset.zero;
+
+
   final _databaseRef = FirebaseDatabase.instance.ref();
-  List<String> imageUrls = []; // Use a dynamic list to support removals
-  List<int> rotationAngles = []; // Use a dynamic list to support removals
-  List<TextEditingController> textControllers = []; // Use a dynamic list to support removals
+  List<String> imageUrls = []; // List to store image URLs
+  List<int> rotationAngles = []; // List to store rotation angles
+  List<TextEditingController> textControllers = []; // List to store text controllers
+  List<String> originalImagePaths = []; // List to store original image paths
   bool isEditing = false;
   bool isDownloading = false;
-  int zoomLevel = 1; // Track zoom level for each image
+  int zoomLevel = 1;
 
   @override
   void initState() {
@@ -48,11 +56,20 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
           rotationAngles = List<int>.from(data['rotations'] ?? List.filled(imageUrls.length, 0));
           List<String> texts = List<String>.from(data['texts'] ?? List.filled(imageUrls.length, ""));
           textControllers = texts.map((text) => TextEditingController(text: text)).toList();
+
+          // Store the original image paths
+          originalImagePaths = List<String>.from(imageUrls);
+        }
+
+        // Ensure at least one text field is available
+        if (imageUrls.isEmpty && textControllers.isEmpty) {
+          textControllers.add(TextEditingController());
         }
       });
     }
   }
 
+  // Save the file details to Firebase
   Future<void> _saveFileDetails() async {
     List<String> texts = textControllers.map((controller) => controller.text).toList();
     await _databaseRef.child("folders/${widget.folderKey}/files/${widget.fileKey}")
@@ -61,47 +78,53 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("File updated successfully!")),
     );
-
-    // REMOVE THIS LINE:
-    // Navigator.pop(context);
   }
 
-
+  // Pick multiple images
   Future<void> _pickImages() async {
     final pickedFiles = await ImagePicker().pickMultiImage();
-    if (pickedFiles.isNotEmpty) {
-      setState(() {
+    setState(() {
+      if (pickedFiles.isNotEmpty) {
         imageUrls = pickedFiles.map((file) => file.path).toList();
         rotationAngles = List.filled(imageUrls.length, 0);
         textControllers = List.generate(imageUrls.length, (index) => TextEditingController());
-        Navigator.pop(context);
-      });
-    }
-  }
-
-  void _clearData() {
-    setState(() {
-      imageUrls.clear();
-      rotationAngles.clear();
-      textControllers.clear();
-      Navigator.pop(context);
+        originalImagePaths = List.from(imageUrls); // Store original paths after picking new images
+      } else {
+        // Ensure at least one text field remains even if no images are picked
+        if (textControllers.isEmpty) {
+          textControllers.add(TextEditingController());
+        }
+      }
     });
   }
 
+  // Reset the image to its original state
+  void _resetImage(int index) {
+    setState(() {
+      // Revert to the original image path and reset rotation and zoom level
+      imageUrls[index] = originalImagePaths[index];
+      rotationAngles[index] = 0;
+      zoomLevel = 1;
+    });
+  }
+
+  // Rotate the image by 90 degrees
   void _rotateImage(int index) {
     setState(() {
       rotationAngles[index] = (rotationAngles[index] + 90) % 360;
     });
-    // _saveFileDetails(); // Save the rotated state to Firebase
+    _saveFileDetails(); // Save the rotated state to Firebase
   }
 
+
+  // Crop the image (zoom in or zoom out)
   void _cropImage(int index) async {
     try {
       setState(() {
         if (zoomLevel < 3) {
-          zoomLevel += 1; // Zoom in
+          zoomLevel += 1;
         } else if (zoomLevel == 3) {
-          zoomLevel--; // Zoom out
+          zoomLevel--;
         }
       });
 
@@ -118,14 +141,9 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
       if (cropShape == null) return;
 
       if (cropShape == "Reset") {
-        setState(() {
-          imageUrls[index] = originalFile.path;
-          rotationAngles[index] = 0;
-          zoomLevel = 1; // Reset zoom level
-        });
+        _resetImage(index); // Reset the image to its original state
         return;
       }
-
 
       int width = image.width;
       int height = image.height;
@@ -155,8 +173,7 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
     }
   }
 
-
-  // Show a dialog to let the user choose crop shape, zoom out or reset the image
+  // Show crop options (reset, crop, etc.)
   Future<String?> _showCropDialog() async {
     return await showDialog<String>(
       context: context,
@@ -172,9 +189,8 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
               ),
               ListTile(
                 title: Text("Reset"),
-                onTap: () => Navigator.of(context).pop("Reset"),  // Reset the image to its original state
+                onTap: () => Navigator.of(context).pop("Reset"),
               ),
-
             ],
           ),
         );
@@ -188,10 +204,12 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
       imageUrls.removeAt(index);
       rotationAngles.removeAt(index);
       textControllers.removeAt(index);
+      originalImagePaths.removeAt(index); // Remove original image path
     });
     _saveFileDetails(); // Update the Firebase database after deletion
   }
 
+  // Generate PDF from images and texts
   Future<void> _generatePdf() async {
     setState(() {
       isDownloading = true;
@@ -248,7 +266,6 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
           IconButton(
             icon: Icon(Icons.more_vert),
             onPressed: () {
-              // Show the alert dialog when the 3-dot icon is clicked
               showDialog(
                 context: context,
                 builder: (BuildContext context) {
@@ -291,6 +308,14 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
         child: SingleChildScrollView(
           child: Column(
             children: [
+              if (imageUrls.isEmpty)
+                TextField(
+                  controller: TextEditingController(),
+                  decoration: const InputDecoration(labelText: "Enter text here"),
+                  maxLines: 2,
+                  enabled: isEditing,
+                  style: const TextStyle(color: Colors.black),
+                ),
               if (imageUrls.isNotEmpty)
                 Column(
                   children: List.generate(imageUrls.length, (index) => Column(
@@ -304,10 +329,10 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
                       ),
                       const SizedBox(height: 10),
                       InteractiveViewer(
-                        panEnabled: true, // Allow panning
-                        scaleEnabled: true, // Allow scaling (zoom)
-                        minScale: zoomLevel == 1 ? 1.0 : 3.0, // Minimum zoom level
-                        maxScale: zoomLevel == 1 ? 4.0 : 9.0, // Maximum zoom level (based on zoomLevel)
+                        panEnabled: true,
+                        scaleEnabled: true,
+                        minScale: zoomLevel == 1 ? 1.0 : 3.0,
+                        maxScale: zoomLevel == 1 ? 4.0 : 9.0,
                         child: Transform.rotate(
                           angle: rotationAngles[index] * math.pi / 180,
                           child: SizedBox(
@@ -337,14 +362,22 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
                       const SizedBox(height: 10),
                     ],
                   )),
-                )
-              else
-                const Text("No images selected"),
+                ),
               const SizedBox(height: 20),
             ],
           ),
         ),
       ),
     );
+  }
+
+  // Clear all the data and reset everything
+  void _clearData() {
+    setState(() {
+      imageUrls.clear();
+      rotationAngles.clear();
+      textControllers.clear();
+      originalImagePaths.clear();
+    });
   }
 }
