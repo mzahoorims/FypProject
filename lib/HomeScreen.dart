@@ -12,105 +12,23 @@ class HomeScreen extends StatefulWidget {
   _HomeScreenState createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _HomeScreenState extends State<HomeScreen> {
+  int _selectedIndex = 0; // To track selected tab index
 
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-  }
+  // Screens corresponding to each bottom navigation item
+  final List<Widget> _screens = const [
+    FolderScreen(),
+    ReminderScreen(),
+  ];
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
-  void _showLogoutConfirmationDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text(
-            'Confirm Logout',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          content: const Text(
-            'Do you want to logout?',
-            style: TextStyle(fontSize: 16),
-          ),
-          actions: [
-            TextButton(
-              child: const Text(
-                'Cancel',
-                style: TextStyle(fontSize: 16, color: Colors.red),
-              ),
-              onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
-              },
-            ),
-            TextButton(
-              child: const Text(
-                'Confirm',
-                style: TextStyle(fontSize: 16, color: Colors.green),
-              ),
-              onPressed: () {
-                _logout(context); // Clear shared preferences and log out
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Future<void> _logout(BuildContext context) async {
-    try {
-      final SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.clear(); // Clear all saved preferences
-
-      await FirebaseAuth.instance.signOut(); // Sign out from Firebase
-
-      // Navigate to the login screen
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const loginScreen()), // Ensure `LoginScreen` is correctly imported
-      );
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error logging out: $e')),
-        );
-      }
-    }
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
   }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.blue, // More vibrant green background
-        automaticallyImplyLeading: false,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.white),
-            onPressed: () {
-              _showLogoutConfirmationDialog(context);
-            },
-          ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-
-          tabs: const [
-            Tab(icon: Icon(Icons.note, color: Colors.black,), text: 'Notes'),
-            Tab(icon: Icon(Icons.alarm, color: Colors.black,), text: 'Reminder'),
-          ],
-          unselectedLabelColor: Colors.black, // Unselected tab color
-          indicatorColor: Colors.blue, // Indicator color
-          labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold), // Change label text style
-        ),
-      ),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -119,15 +37,27 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             end: Alignment.bottomRight,
           ),
         ),
-        child: TabBarView(
-          controller: _tabController,
-          children: const [
-            FolderScreen(),
-            ReminderScreen(),
-
-          ],
-        ),
+        child: _screens[_selectedIndex], // Switch screens based on selected index
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: Color(0xFF5893BB),
+        currentIndex: _selectedIndex, // Highlight selected tab
+        onTap: _onItemTapped, // Handle tab change
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.note),
+            label: 'Notes',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.alarm),
+            label: 'Reminder',
+          ),
+        ],
       ),
     );
   }
 }
+
+//Color(0xFF377F7F),
+
+//Color(0xFF5893BB),

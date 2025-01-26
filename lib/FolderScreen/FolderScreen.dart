@@ -1,7 +1,10 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../loginScreen.dart';
 import 'FileScreen.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+
 
 class FolderScreen extends StatefulWidget {
   const FolderScreen({Key? key}) : super(key: key);
@@ -13,6 +16,7 @@ class FolderScreen extends StatefulWidget {
 class _FolderScreenState extends State<FolderScreen> {
   final FirebaseDatabase _database = FirebaseDatabase.instance;
   final TextEditingController _folderController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController(); // Controller for the search bar
 
   List<Map<String, dynamic>> folders = [];
   List<String> selectedFolders = []; // To store selected folder keys
@@ -26,6 +30,11 @@ class _FolderScreenState extends State<FolderScreen> {
     if (_userId != null) {
       _fetchFolders();
     }
+
+    // Add listener to the search text field
+    _searchController.addListener(() {
+      setState(() {});
+    });
   }
 
   // Fetch folders from Firebase for the logged-in user
@@ -225,54 +234,176 @@ class _FolderScreenState extends State<FolderScreen> {
     });
   }
 
+  // Search folders based on the search query
+  List<Map<String, dynamic>> get filteredFolders {
+    String query = _searchController.text.toLowerCase();
+    return folders
+        .where((folder) =>
+        folder['name'].toLowerCase().contains(query)) // Filter folders by name
+        .toList();
+  }
+
+  Future<void> _logout(BuildContext context) async {
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.clear(); // Clear all saved preferences
+
+      await FirebaseAuth.instance.signOut(); // Sign out from Firebase
+
+      // Navigate to the login screen
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const loginScreen()), // Ensure `LoginScreen` is correctly imported
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error logging out: $e')),
+        );
+      }
+    }
+  }
+
+  void _showLogoutConfirmationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text(
+            'Confirm Logout',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          content: const Text(
+            'Do you want to logout?',
+            style: TextStyle(fontSize: 16),
+          ),
+          actions: [
+            TextButton(
+              child: const Text(
+                'Cancel',
+                style: TextStyle(fontSize: 16, color: Colors.red),
+              ),
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+            ),
+            TextButton(
+              child: const Text(
+                'Confirm',
+                style: TextStyle(fontSize: 16, color: Colors.green),
+              ),
+              onPressed: () {
+                _logout(context); // Clear shared preferences and log out
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-
       appBar: AppBar(
         title: Center(
             child: const Text("Folders Screen",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold))),
+                style: TextStyle(fontSize: 20))),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () {
+              _showLogoutConfirmationDialog(context);
+            },
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator()) // Show progress indicator while loading
-          : Container(
-        decoration: const BoxDecoration(),
-        child: folders.isEmpty
-            ? const Center(child: Text('No folders exist'))
-            : Padding(
-          padding: const EdgeInsets.all(19.0),
-          child: ListView.builder(
-            itemCount: folders.length,
-            itemBuilder: (context, index) {
-              final folder = folders[index];
-              bool isSelected = selectedFolders.contains(folder['key']);
-              return FutureBuilder<int>(  // Fetch file count inside the folder
-                future: _fetchFileCount(folder['key']),
-                builder: (context, snapshot) {
-                  String fileCountText = '0 files'; // Default file count text
+          : Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child:
+                  TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Search for a folder...',
+                      prefixIcon: const Icon(Icons.search),
+                      border: const OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(8)),
+                      ),
+                      focusedBorder: const OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(12)),
+                        borderSide: BorderSide(
+                          color: Colors.black, // Set the color for the focused border
+                          width: 2, // Adjust the width as needed
+                        ),
+                      ),
+                    ),
+                  )
 
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    fileCountText = 'Loading...';
-                  } else if (snapshot.hasData) {
-                    final fileCount = snapshot.data!;
-                    fileCountText = '$fileCount files';
-                  }
+                ),
+                PopupMenuButton<String>(
+                  onSelected: (value) {
+                    if (value == 'deleteSelected') {
+                      _deleteSelectedFolders();
+                    } else if (value == 'deleteAll') {
+                      _deleteAllFolders();
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem<String>(
+                      value: 'deleteSelected',
+                      child: Text('Delete Selected'),
+                    ),
+                    const PopupMenuItem<String>(
+                      value: 'deleteAll',
+                      child: Text('Delete All Folders'),
+                    ),
+                  ],
+                  icon: const Icon(Icons.more_vert,),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: filteredFolders.isEmpty
+                ? const Center(child: Text('No folders found'))
+                : Padding(
+              padding: const EdgeInsets.all(19.0),
+              child: ListView.builder(
+                itemCount: filteredFolders.length,
+                itemBuilder: (context, index) {
+                  final folder = filteredFolders[index];
+                  bool isSelected = selectedFolders.contains(folder['key']);
+                  return FutureBuilder<int>( // Fetch file count inside the folder
+                    future: _fetchFileCount(folder['key']),
+                    builder: (context, snapshot) {
+                      String fileCountText = '0 files'; // Default file count text
 
-                  return Card(
-                    elevation: 4,
-                    color: isSelected ? Colors.blue.shade100 : null,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        GestureDetector(
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        fileCountText = 'Loading...';
+                      } else if (snapshot.hasData) {
+                        final fileCount = snapshot.data!;
+                        fileCountText = '$fileCount files';
+                      }
+
+                      return Card(
+                        elevation: 4,
+                        color: isSelected
+                            ? Colors.blueAccent.withOpacity(0.4) // Highlight selected folder
+                            : Color(0xFF939FAD), // Default folder color
+                        child: GestureDetector(
                           onTap: () {
                             // On tap, open the folder
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) =>
-                                    FileScreen(folderKey: folder['key']),
+                                builder: (context) => FileScreen(folderKey: folder['key']),
                               ),
                             );
                           },
@@ -289,13 +420,12 @@ class _FolderScreenState extends State<FolderScreen> {
                                 Expanded(
                                   child: Text(
                                     folder['name'],
-                                    style: const TextStyle(
-                                        fontSize: 16, fontWeight: FontWeight.bold),
+                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                                     textAlign: TextAlign.start,
                                   ),
                                 ),
                                 Text(fileCountText,
-                                    style: const TextStyle(fontSize: 14, color: Colors.grey)),
+                                    style: const TextStyle(fontSize: 14, color: Colors.black)),
                                 IconButton(
                                   icon: const Icon(Icons.more_vert),
                                   onPressed: () =>
@@ -305,33 +435,20 @@ class _FolderScreenState extends State<FolderScreen> {
                             ),
                           ),
                         ),
-                      ],
-                    ),
+                      );
+                    },
                   );
                 },
-              );
-            },
+              ),
+            ),
           ),
-        ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
+        backgroundColor: Color(0xFF5893BB),
         onPressed: _showAddFolderDialog,
         child: const Icon(Icons.add),
       ),
-      persistentFooterButtons: [
-        if (selectedFolders.isNotEmpty)
-          IconButton(
-            icon: const Icon(Icons.delete_forever, color: Colors.red),
-            onPressed: _deleteSelectedFolders,
-          ),
-        if (folders.isNotEmpty)
-          ElevatedButton(
-            onPressed: _deleteAllFolders,
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete All Folders',
-                style: TextStyle(color: Colors.black)),
-          ),
-      ],
     );
   }
 }
