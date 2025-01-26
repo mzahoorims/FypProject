@@ -241,9 +241,7 @@ class _ReminderDialogueState extends State<ReminderDialogue> {
           );
         } catch (e) {
           print('error coming here...: $e');
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to schedule notification: $e')),
-          );
+
         }
       } else {
         // Request permission
@@ -298,41 +296,70 @@ class _ReminderDialogueState extends State<ReminderDialogue> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Set Reminder')),
+      appBar: AppBar(title: const Text('Set Reminder', style: TextStyle( fontSize: 20),),
+      centerTitle: true,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            SizedBox(
+              height: 20,
+            ),
 
             Column(
               children: [
-                TextField(
+                TextFormField(
                   controller: _titleController,
                   decoration: const InputDecoration(
                     labelText: 'Enter Notification Title',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(26)),
+                    ),
                   ),
                 ),
-                const SizedBox(height: 10),
-                TextField(
+
+                const SizedBox(height: 15),
+                TextFormField(
                   controller: _bodyController,
                   decoration: const InputDecoration(
                     labelText: 'Enter Notification Body',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(26)),
+                    ),
                   ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Body cannot be empty';
+                    }
+                    return null;
+                  },
                 ),
+
                 const SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: _scheduleNotificationDialog,
-                  child: const Text("Schedule Notification"),
+                  child: const Text("Schedule Notification", style: TextStyle(color: Colors.black),),
+                  style: ElevatedButton.styleFrom(
+                    minimumSize: Size(350, 50),
+                    backgroundColor: Color(0xFF5893BB),
+                  ),
                 ),
               ],
             ),
+            SizedBox(
+              height: 10,
+            ),
 
-            const Spacer(),
             Center(
               child: ElevatedButton(
                 onPressed: _saveReminder,
-                child: const Text('Save Reminder'),
+                child: const Text('Save Reminder', style: TextStyle(color: Colors.black),),
+                style: ElevatedButton.styleFrom(
+                  minimumSize: Size(350, 50),
+                  backgroundColor: Color(0xFF5893BB),
+                ),
               ),
             ),
           ],

@@ -25,6 +25,7 @@ class _FileScreenState extends State<FileScreen> {
   final TextEditingController _editFileController = TextEditingController();
   final TextEditingController _searchController = TextEditingController(); // For search bar
   List<Map<String, dynamic>> filteredFiles = []; // Files after applying search filter
+  List<String> selectedFiles = []; // Track selected files for deletion
 
   @override
   void initState() {
@@ -199,38 +200,6 @@ class _FileScreenState extends State<FileScreen> {
     );
   }
 
-  Future<void> _deleteAllFiles() async {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Confirm Deletion"),
-          content: const Text("Are you sure you want to delete all files in this folder?"),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: const Text("Cancel"),
-            ),
-            TextButton(
-              onPressed: () async {
-                final folderRef = _databaseRef.child("folders/${widget.folderKey}/files");
-                await folderRef.remove();
-                _fetchFiles();
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("All files deleted.")),
-                );
-              },
-              child: const Text("Delete All"),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   Future<void> _editFileName(String fileKey, String currentName) async {
     _editFileController.text = currentName;
     showDialog(
@@ -265,209 +234,213 @@ class _FileScreenState extends State<FileScreen> {
     );
   }
 
+  // Toggle file selection for deletion
+  void _toggleFileSelection(String fileKey) {
+    setState(() {
+      if (selectedFiles.contains(fileKey)) {
+        selectedFiles.remove(fileKey);
+      } else {
+        selectedFiles.add(fileKey);
+      }
+    });
+  }
+
+  // Delete selected files
+  Future<void> _deleteSelectedFiles() async {
+    for (String fileKey in selectedFiles) {
+      await _databaseRef.child("folders/${widget.folderKey}/files/$fileKey").remove();
+    }
+    setState(() {
+      selectedFiles.clear(); // Clear selection after deletion
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Selected files deleted.")),
+    );
+    _fetchFiles(); // Refresh the file list
+  }
+
+  // Delete all files
+  Future<void> _deleteAllFiles() async {
+    for (var file in files) {
+      await _databaseRef.child("folders/${widget.folderKey}/files/${file['key']}").remove();
+    }
+    setState(() {
+      selectedFiles.clear(); // Clear selection after deletion
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("All files deleted.")),
+    );
+    _fetchFiles(); // Refresh the file list
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.blue,
         title: Center(child: const Text("Files Screen")),
         actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'deleteSelected') {
+                _deleteSelectedFiles();
+              } else if (value == 'deleteAll') {
+                _deleteAllFiles();
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem<String>(
+                value: 'deleteSelected',
+                child: Text('Delete Selected'),
+              ),
+              const PopupMenuItem<String>(
+                value: 'deleteAll',
+                child: Text('Delete All Files'),
+              ),
+            ],
+            icon: const Icon(Icons.more_vert),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          SizedBox(
+            height: 10,
+          ),
+          // Search bar for searching files
           Padding(
             padding: const EdgeInsets.all(8.0),
-            child: IconButton(
-              icon: Icon(Icons.search),
-              onPressed: () {
-                showSearch(
-                  context: context,
-                  delegate: FileSearchDelegate(files: filteredFiles),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search files by name...',
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+
+                ),
+              ),
+            ),
+          ),
+          // File grid display
+          filteredFiles.isEmpty
+              ? const Center(child: Text("No files available"))
+              : Expanded(
+            child: GridView.builder(
+              padding: const EdgeInsets.all(18),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 8,
+                mainAxisSpacing: 8,
+              ),
+              itemCount: filteredFiles.length,
+              itemBuilder: (context, index) {
+                final file = filteredFiles[index];
+                final fileCount = files.length; // The count of files in the current folder
+                return GestureDetector(
+                  onLongPress: () {
+                    _toggleFileSelection(file['key']);
+                  },
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => FileDetailScreen(
+                          folderKey: widget.folderKey,
+                          fileKey: file['key'],
+                        ),
+                      ),
+                    );
+                  },
+                  child: Card(
+                    color: selectedFiles.contains(file['key']) ? Colors.blue.withOpacity(0.2) : Color(0xFF939FAD),
+                    elevation: 4,
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: file['image'] != null && file['image'].isNotEmpty
+                                ? (file['image']!.startsWith('http')
+                                ? Image.network(
+                              file['image'],
+                              width: double.infinity,
+                              height: double.infinity,
+                              fit: BoxFit.cover,
+                            )
+                                : Image.file(
+                              File(file['image']),
+                              width: double.infinity,
+                              height: double.infinity,
+                              fit: BoxFit.cover,
+                            ))
+                                : file['content'] != null && file['content'].isNotEmpty
+                                ? Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Text(
+                                file['content'],
+                                style: const TextStyle(color: Colors.black),
+                                maxLines: 3,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                              ),
+                            )
+                                : const Center(
+                              child: Icon(
+                                Icons.insert_drive_file,
+                                size: 48,
+                                color: Color(0x800021C5),
+                              ),
+                            ),
+                          ),
+                          Center(
+                            child: Text(
+                              file['name'],
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          // Show the file count on the card.
+                          Text(
+                            '$fileCount file${fileCount > 1 ? 's' : ''}', // Pluralize if more than 1 file
+                            style: const TextStyle(fontSize: 12, color: Colors.grey),
+                            textAlign: TextAlign.center,
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              IconButton(
+                                onPressed: () {
+                                  Navigator.push(context, MaterialPageRoute(builder: (context) => ReminderScreen()));
+                                },
+                                icon: Icon(Icons.lock_clock),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.edit),
+                                onPressed: () => _editFileName(file['key'], file['name']),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete, color: Color(0xFFA83B3B)),
+                                onPressed: () => _deleteFile(file['key']),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 );
               },
             ),
           ),
         ],
       ),
-      body: filteredFiles.isEmpty
-          ? const Center(child: Text("No files available"))
-          : GridView.builder(
-        padding: const EdgeInsets.all(18),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
-        ),
-        itemCount: filteredFiles.length,
-        itemBuilder: (context, index) {
-          final file = filteredFiles[index];
-          return GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => FileDetailScreen(
-                    folderKey: widget.folderKey,
-                    fileKey: file['key'],
-                  ),
-                ),
-              );
-            },
-            child: Card(
-              elevation: 4,
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Show image if available, otherwise show content or icon
-                    Expanded(
-                      child: file['image'] != null && file['image'].isNotEmpty
-                          ? (file['image']!.startsWith('http')
-                          ? Image.network(
-                        file['image'],
-                        width: double.infinity,  // Make sure it takes full width
-                        height: double.infinity, // Make sure it takes full height
-                        fit: BoxFit.cover,        // Ensure the image fills the space properly
-                      )
-                          : Image.file(
-                        File(file['image']),
-                        width: double.infinity,  // Make sure it takes full width
-                        height: double.infinity, // Make sure it takes full height
-                        fit: BoxFit.cover,        // Fill the available space while maintaining aspect ratio
-                      ))
-                          : file['content'] != null && file['content'].isNotEmpty
-                          ? Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Text(
-                          file['content'],
-                          style: const TextStyle(color: Colors.black),
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center, // Center the text if no image
-                        ),
-                      )
-                          : const Center(
-                        child: Icon(Icons.insert_drive_file, size: 48),
-                      ), // Fallback icon
-                    ),
-                    Center(
-                      child: Text(
-                        file['name'],
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        IconButton(onPressed: () {
-                          Navigator.push(context, MaterialPageRoute(builder: (context)=>ReminderScreen()));
-                        }, icon: Icon(Icons.lock_clock)),
-                        IconButton(
-                          icon: const Icon(Icons.edit, color: Colors.blue),
-                          onPressed: () =>
-                              _editFileName(file['key'], file['name']),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () => _deleteFile(file['key']),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      ),
       floatingActionButton: FloatingActionButton(
+        backgroundColor: Color(0xFF5893BB),
         onPressed: _addFile,
         child: const Icon(Icons.add),
       ),
-      persistentFooterButtons: [
-        Padding(
-          padding: const EdgeInsets.all(10),
-          child: IconButton(
-            icon: Icon(Icons.delete_forever),
-            onPressed: _deleteAllFiles,
-          ),
-        )
-      ],
-    );
-  }
-}
-
-class FileSearchDelegate extends SearchDelegate<String> {
-  final List<Map<String, dynamic>> files;
-
-  FileSearchDelegate({required this.files});
-
-  @override
-  Widget? buildLeading(BuildContext context) {
-    return IconButton(
-      icon: const Icon(Icons.arrow_back),
-      onPressed: () {
-        close(context, "");
-      },
-    );
-  }
-
-  @override
-  List<Widget> buildActions(BuildContext context) {
-    return [
-      IconButton(
-        icon: const Icon(Icons.clear),
-        onPressed: () {
-          query = '';
-        },
-      ),
-    ];
-  }
-
-  @override
-  Widget buildResults(BuildContext context) {
-    final results = files.where((file) {
-      return file['name'].toLowerCase().contains(query.toLowerCase());
-    }).toList();
-    return ListView(
-      children: results
-          .map<Widget>(
-            (file) => ListTile(
-          title: Text(file['name']),
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => FileDetailScreen(
-                  folderKey: '',
-                  fileKey: file['key'],
-                ),
-              ),
-            );
-          },
-        ),
-      )
-          .toList(),
-    );
-  }
-
-  @override
-  Widget buildSuggestions(BuildContext context) {
-    final suggestions = files.where((file) {
-      return file['name'].toLowerCase().contains(query.toLowerCase());
-    }).toList();
-    return ListView(
-      children: suggestions
-          .map<Widget>(
-            (file) => ListTile(
-          title: Text(file['name']),
-          onTap: () {
-            query = file['name'];
-            showResults(context);
-          },
-        ),
-      )
-          .toList(),
     );
   }
 }

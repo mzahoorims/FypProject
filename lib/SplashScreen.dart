@@ -34,41 +34,36 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // Set white background color
-      body: Stack(
-        children: [
-          // Splash Screen Content
-          AnimatedSplashScreen(
-            duration: 6000, // Duration in milliseconds
-            splash: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center, // Center the content
-                children: [
-                  const Text(
-                    "Notes Manager",
-                    style: TextStyle(
-                      fontSize: 36.0,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF377F7F),
-                      fontFamily: 'AlfaSlabOne',
-                    ),
-                  ),
-                  const SizedBox(height: 30), // Add more spacing between text and animation
-                  Lottie.asset(
-                    'assets/animation/Animation - 1717493499899.json',
-                    width: 200, // Set width for better alignment
-                    height: 200, // Set height for better alignment
-                  ),
-                ],
+      backgroundColor: Color(0xFF9AA8B2), // Set white background color
+      body: AnimatedSplashScreen(
+        duration: 6000, // Duration in milliseconds
+        splash: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center, // Center the content
+            children: [
+              const Text(
+                "Notes Manager",
+                style: TextStyle(
+                  fontSize: 36.0,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF377F7F),
+                  fontFamily: 'AlfaSlabOne',
+                ),
               ),
-            ),
-            nextScreen: token.isNotEmpty ? HomeScreen() : loginScreen(),
-            splashIconSize: 500,
-            splashTransition: SplashTransition.fadeTransition,
-            backgroundColor: Colors.transparent, // Makes the background transparent
+              const SizedBox(height: 30), // Add more spacing between text and animation
+              Lottie.asset(
+                'assets/animation/Animation - 1717493499899.json',
+                width: 200, // Set width for better alignment
+                height: 200, // Set height for better alignment
+              ),
+            ],
           ),
-        ],
+        ),
+        nextScreen: token.isNotEmpty ? HomeScreen() : loginScreen(),
+        splashIconSize: 500,
+        splashTransition: SplashTransition.fadeTransition,
+        backgroundColor: Colors.transparent, // Makes the background transparent
       ),
     );
   }

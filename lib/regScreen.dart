@@ -40,80 +40,71 @@ class _RegScreenState extends State<RegScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          // Background Color with Lightening Overlay Effect (No Image)
-          Container(
-            height: MediaQuery.of(context).size.height,
-            width: MediaQuery.of(context).size.width,
-            color: Colors.white.withOpacity(0.5), // Lightening overlay effect
-          ),
 
-          // Main Content
-          SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 80.0),
-            child: Column(
-              children: [
-                const SizedBox(height: 20),
-                const Text(
-                  "Sign Up",
-                  style: TextStyle(
-                      fontSize: 38.0,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black
-                  ),
-                ),
-                const SizedBox(height: 80),
+      appBar: AppBar(
+        title: Text("Sign Up", style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),),
+        centerTitle: true,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 80.0),
+        child: Column(
+          children: [
+            const SizedBox(height: 40),
 
-                _buildTextField(_usernameController, Icons.person, 'User name'),
-                const SizedBox(height: 20),
-                _buildEmailField(),
-                const SizedBox(height: 20),
-                _buildPasswordField(),
-                const SizedBox(height: 20),
-                _buildConfirmPasswordField(),
-                const SizedBox(height: 70),
+            _buildTextField(_usernameController, Icons.person, 'User name'),
+            const SizedBox(height: 20),
+            _buildEmailField(),
+            const SizedBox(height: 20),
+            _buildPasswordField(),
+            const SizedBox(height: 20),
+            _buildConfirmPasswordField(),
+            const SizedBox(height: 70),
 
-                _buildSignUpButton(),
-                const SizedBox(height: 15),
+            _buildSignUpButton(),
+            const SizedBox(height: 15),
 
-                const Text(
-                  "Already have an account?",
-                  style: TextStyle(fontSize: 16.0, color: Colors.black),
-                ),
-                const SizedBox(height: 5),
-                GestureDetector(
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const loginScreen()),
-                  ),
-                  child: const Text(
-                    "Sign In",
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16.0,
-                        color: Colors.black
-                    ),
-                  ),
-                ),
-              ],
+            const Text(
+              "Already have an account?",
+              style: TextStyle(fontSize: 16.0, color: Colors.black),
             ),
-          ),
-        ],
+            const SizedBox(height: 5),
+            GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const loginScreen()),
+              ),
+              child: const Text(
+                "Sign In",
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16.0,
+                    color: Colors.black
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildTextField(TextEditingController controller, IconData icon, String hint) {
-    return TextField(
+    return
+      TextField(
       controller: controller,
       decoration: InputDecoration(
+
         enabledBorder: OutlineInputBorder(
-          borderSide: const BorderSide(width: 3, color: Colors.black12),
-          borderRadius: BorderRadius.circular(10.0),
+          borderSide: const BorderSide( color: Colors.black),
+          borderRadius: BorderRadius.circular(20.0),
+        ),
+
+        focusedBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: Color(0x6C000000)), // Blue border on focus
+          borderRadius: BorderRadius.circular(20.0),
         ),
         filled: true,
-        fillColor: Colors.white.withOpacity(0.8),
+        fillColor: Color(0xFF939FAD),
         suffixIcon: Icon(icon, color: Colors.black54),
         hintText: hint,
       ),
@@ -125,11 +116,16 @@ class _RegScreenState extends State<RegScreen> {
       controller: _emailController,
       decoration: InputDecoration(
         enabledBorder: OutlineInputBorder(
-          borderSide: const BorderSide(width: 3, color: Colors.black12),
-          borderRadius: BorderRadius.circular(10.0),
+          borderSide: const BorderSide(color: Colors.black),
+          borderRadius: BorderRadius.circular(20.0),
+        ),
+
+        focusedBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: Color(0x6C000000)), // Blue border on focus
+          borderRadius: BorderRadius.circular(20.0),
         ),
         filled: true,
-        fillColor: Colors.white.withOpacity(0.8),
+        fillColor: Color(0xFF939FAD),
         suffixIcon: const Icon(Icons.email, color: Colors.black54),
         hintText: "Enter email",
         errorText: _emailError,
@@ -143,13 +139,18 @@ class _RegScreenState extends State<RegScreen> {
       obscureText: !_isPasswordVisible,
       decoration: InputDecoration(
         enabledBorder: OutlineInputBorder(
-          borderSide: const BorderSide(width: 3, color: Colors.black12),
-          borderRadius: BorderRadius.circular(10.0),
+          borderSide: const BorderSide(color: Colors.black),
+          borderRadius: BorderRadius.circular(20.0),
+        ),
+
+        focusedBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: Color(0x6C000000)), // Blue border on focus
+          borderRadius: BorderRadius.circular(20.0),
         ),
         filled: true,
-        fillColor: Colors.white.withOpacity(0.8),
+        fillColor: Color(0xFF939FAD),
         suffixIcon: IconButton(
-          icon: Icon(_isPasswordVisible ? Icons.visibility : Icons.visibility_off, color: Colors.grey),
+          icon: Icon(_isPasswordVisible ? Icons.visibility : Icons.visibility_off, color: Colors.black45),
           onPressed: () {
             setState(() {
               _isPasswordVisible = !_isPasswordVisible;
@@ -168,13 +169,19 @@ class _RegScreenState extends State<RegScreen> {
       obscureText: !_isConfirmPasswordVisible,
       decoration: InputDecoration(
         enabledBorder: OutlineInputBorder(
-          borderSide: const BorderSide(width: 3, color: Colors.black12),
-          borderRadius: BorderRadius.circular(10.0),
+          borderSide: const BorderSide( color: Colors.black),
+          borderRadius: BorderRadius.circular(20.0),
         ),
+
+        focusedBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: Color(0x6C000000)), // Blue border on focus
+          borderRadius: BorderRadius.circular(20.0),
+        ),
+
         filled: true,
-        fillColor: Colors.white.withOpacity(0.8),
+        fillColor: Color(0xFF939FAD),
         suffixIcon: IconButton(
-          icon: Icon(_isConfirmPasswordVisible ? Icons.visibility : Icons.visibility_off, color: Colors.grey),
+          icon: Icon(_isConfirmPasswordVisible ? Icons.visibility : Icons.visibility_off, color: Colors.black45),
           onPressed: () {
             setState(() {
               _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
@@ -188,31 +195,38 @@ class _RegScreenState extends State<RegScreen> {
   }
 
   Widget _buildSignUpButton() {
-    return GestureDetector(
-      onTap: _signUp,
-      child: Container(
-        height: 55.0,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: const Color(0xFF1877F2),
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.5),
-              spreadRadius: 2,
-              blurRadius: 5,
-              offset: const Offset(3, 3),
+    return
+
+      GestureDetector(
+        onTap: _signUp,
+        child:
+        Container(
+          height: 55.0,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: const Color(0xFF5893BB),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                spreadRadius: 2,
+                blurRadius: 5,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: const Center(
+            child: Text(
+              'Sign Up',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
             ),
-          ],
-        ),
-        child: const Center(
-          child: Text(
-            "Sign Up",
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
           ),
         ),
-      ),
-    );
+      );
   }
 
   void _signUp() async {
@@ -284,6 +298,14 @@ class _RegScreenState extends State<RegScreen> {
       return;
     }
 
+    // Ensure email is from gmail.com domain
+    if (!email.endsWith('@gmail.com')) {
+      setState(() {
+        _emailError = 'Email must be a @gmail.com address';
+      });
+      return;
+    }
+
     // Attempt to create the user with Firebase Auth
     try {
       UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
@@ -310,8 +332,6 @@ class _RegScreenState extends State<RegScreen> {
         setState(() {
           _emailError = "⚠️ Email is already in use. Please log in.";
         });
-
-
       } else {
         Fluttertoast.showToast(
           msg: "❌ Error: ${e.message}",

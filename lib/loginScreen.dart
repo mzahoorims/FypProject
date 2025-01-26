@@ -25,25 +25,20 @@ class _loginScreenState extends State<loginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // Set white background
+      appBar: AppBar(
+        title: Text(
+          "Login",
+          style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+      ),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 180.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Facebook-like login title with bold font
-              const Text(
-                "Login",
-                style: TextStyle(
-                  fontSize: 38.0,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-              ),
-              const SizedBox(height: 40),
-
-              // Email field styled similarly to Facebook
+              // Email field styled similarly to Facebook, icon moved to the right
               _buildTextField(_emailController, Icons.email_sharp, 'Enter email'),
               const SizedBox(height: 20),
 
@@ -100,7 +95,6 @@ class _loginScreenState extends State<loginScreen> {
                   style: TextStyle(
                     fontSize: 18.0,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF1877F2), // Facebook blue color
                   ),
                 ),
               ),
@@ -116,13 +110,21 @@ class _loginScreenState extends State<loginScreen> {
       controller: controller,
       decoration: InputDecoration(
         enabledBorder: OutlineInputBorder(
-          borderSide: const BorderSide(width: 2, color: Colors.black12),
-          borderRadius: BorderRadius.circular(10.0),
+          borderSide: const BorderSide(color: Colors.black12),
+          borderRadius: BorderRadius.circular(20.0),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: Color(0x6C000000)), // Blue border on focus
+          borderRadius: BorderRadius.circular(20.0),
         ),
         filled: true,
-        fillColor: Colors.white.withOpacity(0.9),
-        prefixIcon: Icon(icon, color: Colors.grey),
+        fillColor: Color(0xFF939FAD), // Same gray background
         hintText: hint,
+        hintStyle: const TextStyle(color: Colors.black), // White text for hint
+        suffixIcon: Padding(
+          padding: const EdgeInsets.only(right: 12.0),
+          child: Icon(icon, color: Colors.black),
+        ),
       ),
     );
   }
@@ -134,14 +136,18 @@ class _loginScreenState extends State<loginScreen> {
       decoration: InputDecoration(
         enabledBorder: OutlineInputBorder(
           borderSide: const BorderSide(width: 2, color: Colors.black12),
-          borderRadius: BorderRadius.circular(10.0),
+          borderRadius: BorderRadius.circular(20.0),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: Color(0xD3000000)), // Blue border on focus
+          borderRadius: BorderRadius.circular(20.0),
         ),
         filled: true,
-        fillColor: Colors.white.withOpacity(0.9),
+        fillColor: Color(0xFF939FAD), // Same gray background
         suffixIcon: IconButton(
           icon: Icon(
             _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-            color: Colors.grey,
+            color: Colors.black,
           ),
           onPressed: () {
             setState(() {
@@ -150,6 +156,7 @@ class _loginScreenState extends State<loginScreen> {
           },
         ),
         hintText: hint,
+        hintStyle: const TextStyle(color: Colors.black), // White text for hint
       ),
     );
   }
@@ -161,8 +168,8 @@ class _loginScreenState extends State<loginScreen> {
         height: 55.0,
         width: double.infinity,
         decoration: BoxDecoration(
-          color: const Color(0xFF1877F2), // Facebook blue color
-          borderRadius: BorderRadius.circular(12),
+          color: const Color(0xFF5893BB),
+          borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.2),
@@ -178,7 +185,7 @@ class _loginScreenState extends State<loginScreen> {
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Colors.white,
+              color: Colors.black,
             ),
           ),
         ),

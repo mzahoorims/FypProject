@@ -18,6 +18,10 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'FCM Notification',
       theme: ThemeData(
+        scaffoldBackgroundColor: Color(0xFF9AA8B2),
+        appBarTheme:AppBarTheme(
+          backgroundColor:Color(0xFF5893BB),
+        ),
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
@@ -25,3 +29,6 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
+//:  Color(0xFF5893BB),
+//

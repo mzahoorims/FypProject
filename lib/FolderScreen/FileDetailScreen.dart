@@ -30,7 +30,6 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
   bool _isDragging = false;
   Offset _dragStart = Offset.zero;
 
-
   final _databaseRef = FirebaseDatabase.instance.ref();
   List<String> imageUrls = []; // List to store image URLs
   List<int> rotationAngles = []; // List to store rotation angles
@@ -62,8 +61,8 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
         }
 
         // Ensure at least one text field is available
-        if (imageUrls.isEmpty && textControllers.isEmpty) {
-          textControllers.add(TextEditingController());
+        if (textControllers.isEmpty) {
+          textControllers.add(TextEditingController()); // Add a default text field if no images are picked
         }
       });
     }
@@ -78,6 +77,7 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("File updated successfully!")),
     );
+
   }
 
   // Pick multiple images
@@ -85,17 +85,14 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
     final pickedFiles = await ImagePicker().pickMultiImage();
     setState(() {
       if (pickedFiles.isNotEmpty) {
-        imageUrls = pickedFiles.map((file) => file.path).toList();
-        rotationAngles = List.filled(imageUrls.length, 0);
-        textControllers = List.generate(imageUrls.length, (index) => TextEditingController());
-        originalImagePaths = List.from(imageUrls); // Store original paths after picking new images
-      } else {
-        // Ensure at least one text field remains even if no images are picked
-        if (textControllers.isEmpty) {
-          textControllers.add(TextEditingController());
-        }
+        // Append the new images to the existing ones
+        imageUrls.addAll(pickedFiles.map((file) => file.path));
+        rotationAngles.addAll(List.filled(pickedFiles.length, 0)); // Add default rotation value
+        textControllers.addAll(List.generate(pickedFiles.length, (index) => TextEditingController())); // Add text controllers for the new images
+        originalImagePaths.addAll(pickedFiles.map((file) => file.path)); // Add the new paths to original image paths
       }
     });
+    Navigator.pop(context);
   }
 
   // Reset the image to its original state
@@ -115,7 +112,6 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
     });
     _saveFileDetails(); // Save the rotated state to Firebase
   }
-
 
   // Crop the image (zoom in or zoom out)
   void _cropImage(int index) async {
@@ -200,6 +196,7 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
 
   // Delete a specific image
   void _deleteImage(int index) {
+
     setState(() {
       imageUrls.removeAt(index);
       rotationAngles.removeAt(index);
@@ -207,6 +204,8 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
       originalImagePaths.removeAt(index); // Remove original image path
     });
     _saveFileDetails(); // Update the Firebase database after deletion
+
+
   }
 
   // Generate PDF from images and texts
@@ -274,6 +273,7 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
                     content: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+
                         TextButton(
                           onPressed: _pickImages,
                           child: const Text("Pick Images"),
@@ -297,6 +297,7 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
                       ],
                     ),
                   );
+
                 },
               );
             },
@@ -308,14 +309,22 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
         child: SingleChildScrollView(
           child: Column(
             children: [
+              // Display text field if no image is picked
               if (imageUrls.isEmpty)
-                TextField(
-                  controller: TextEditingController(),
-                  decoration: const InputDecoration(labelText: "Enter text here"),
-                  maxLines: 2,
-                  enabled: isEditing,
-                  style: const TextStyle(color: Colors.black),
+                Column(
+                  children: [
+                    TextField(
+                      controller: textControllers.isNotEmpty ? textControllers[0] : TextEditingController(), // Ensure it's initialized
+                      decoration: const InputDecoration(labelText: "Enter text"),
+                      maxLines: 2,
+                      enabled: isEditing,
+                      style: const TextStyle(color: Colors.black),
+                    ),
+                    const SizedBox(height: 10),
+                  ],
                 ),
+
+              // Display images if available
               if (imageUrls.isNotEmpty)
                 Column(
                   children: List.generate(imageUrls.length, (index) => Column(
@@ -378,6 +387,9 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
       rotationAngles.clear();
       textControllers.clear();
       originalImagePaths.clear();
+      // Add a new text field if no images are selected
+      textControllers.add(TextEditingController());
     });
+    Navigator.pop(context);
   }
 }

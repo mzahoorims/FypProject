@@ -30,6 +30,7 @@ class AssetsRes {
   static const String BK16 = 'assets/images/bk16.jpg';
   static const String BK17 = 'assets/images/bk17.jpg';
   static const String BK18 = 'assets/images/bk18.jpg';
+  static const String BK30 = 'assets/images/bk30.jpg';
   static const String P1 = 'assets/images/p1.jpeg';
   static const String P2 = 'assets/images/p2.png';
   static const String P3 = 'assets/images/p3.jpg';
