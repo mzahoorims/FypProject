@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Import FirebaseAuth
 import 'package:student_note/ReminderModule/reminder_dialogue.dart';
 
 class ReminderScreen extends StatelessWidget {
@@ -11,14 +12,24 @@ class ReminderScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    User? user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return Scaffold(
+        body: Center(child: Text('Please log in to view your reminders.')),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
-       // backgroundColor: Colors.pink.shade50,
         title: const Text('Reminders'),
         centerTitle: true,
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('reminders').snapshots(),
+        stream: FirebaseFirestore.instance
+            .collection('reminders')
+            .where('userId', isEqualTo: user.uid)
+            .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());

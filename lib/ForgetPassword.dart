@@ -27,7 +27,7 @@ class _ForgetPasswordState extends State<ForgetPassword> {
           children: [
             const SizedBox(height: 10),
 
-            const SizedBox(height: 30),
+            const SizedBox(height: 50),
 
             // Email Input Field
             SizedBox(
