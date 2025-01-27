@@ -47,8 +47,7 @@ class _FolderScreenState extends State<FolderScreen> {
     if (snapshot.exists) {
       final data = snapshot.value as Map<dynamic, dynamic>;
       setState(() {
-        folders = data.entries
-            .map((entry) {
+        folders = data.entries.map((entry) {
           final folderName = entry.value['name'];
           return {
             "key": entry.key,

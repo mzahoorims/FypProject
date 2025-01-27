@@ -34,6 +34,14 @@ class _FileScreenState extends State<FileScreen> {
     _searchController.addListener(_filterFiles); // Add listener to search bar
   }
 
+
+  Future<void> _addFile() async {
+    final fileRef = _databaseRef.child("folders/${widget.folderKey}/files").push();
+    await fileRef.set({"name": " ${files.length + 1}", "content": "", "image": ""});
+    _fetchFiles();
+  }
+
+
   Future<void> _fetchFiles() async {
     final snapshot = await _databaseRef.child("folders/${widget.folderKey}/files").get();
     if (snapshot.exists) {
@@ -65,6 +73,7 @@ class _FileScreenState extends State<FileScreen> {
   Future<void> _downloadFile(String fileKey, String fileName, String content, String? imageUrl) async {
     final status = await Permission.storage.status;
 
+    // if permission is not granted
     if (!status.isGranted) {
       showDialog(
         context: context,
@@ -163,11 +172,6 @@ class _FileScreenState extends State<FileScreen> {
     }
   }
 
-  Future<void> _addFile() async {
-    final fileRef = _databaseRef.child("folders/${widget.folderKey}/files").push();
-    await fileRef.set({"name": " ${files.length + 1}", "content": "", "image": ""});
-    _fetchFiles();
-  }
 
   Future<void> _deleteFile(String fileKey) async {
     showDialog(

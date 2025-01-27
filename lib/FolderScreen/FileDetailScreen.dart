@@ -8,9 +8,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'dart:math' as math;
-import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as img;
-import 'package:flutter/cupertino.dart';
 
 class FileDetailScreen extends StatefulWidget {
   final String folderKey;
@@ -33,11 +31,14 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
   final _databaseRef = FirebaseDatabase.instance.ref();
   List<String> imageUrls = []; // List to store image URLs
   List<int> rotationAngles = []; // List to store rotation angles
-  List<TextEditingController> textControllers = []; // List to store text controllers
+  List<TextEditingController> textControllers = [];
+  List<TextEditingController> textSingleControllers = [];
+
   List<String> originalImagePaths = []; // List to store original image paths
   bool isEditing = false;
   bool isDownloading = false;
   int zoomLevel = 1;
+  bool isLoading = false; // Flag to track loading state
 
   @override
   void initState() {
@@ -45,8 +46,27 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
     _fetchFileDetails();
   }
 
+  // Save the file details to Firebase
+
+  Future<void> _saveFileDetails() async {
+    List<String> texts = textControllers.map((con) => con.text).toList();
+    List<String> singleTexts = textSingleControllers.map((con) => con.text).toList();
+
+    await _databaseRef.child("folders/${widget.folderKey}/files/${widget.fileKey}")
+        .update({"images": imageUrls, "rotations": rotationAngles, "texts": texts, "single_texts": singleTexts});
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("File updated successfully!")),
+    );
+  }
+
   Future<void> _fetchFileDetails() async {
+    setState(() {
+      isLoading = true; // Set loading to true while fetching data
+    });
+
     final snapshot = await _databaseRef.child("folders/${widget.folderKey}/files/${widget.fileKey}").get();
+
     if (snapshot.exists) {
       final data = snapshot.value as Map;
       setState(() {
@@ -56,32 +76,38 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
           List<String> texts = List<String>.from(data['texts'] ?? List.filled(imageUrls.length, ""));
           textControllers = texts.map((text) => TextEditingController(text: text)).toList();
 
-          // Store the original image paths
+          // Separate text fields
+          List<String> textSingles = List<String>.from(data['single_texts'] ?? List.filled(1, ""));
+          textSingleControllers = textSingles.map((text) => TextEditingController(text: text)).toList();
+
+          print('controllers here..: $textSingleControllers');
+
           originalImagePaths = List<String>.from(imageUrls);
+        } else if(data['images'] == null){
+          List<String> textSingles = List<String>.from(data['single_texts'] ?? List.filled(1, ""));
+          textSingleControllers = textSingles.map((text) => TextEditingController(text: text)).toList();
         }
 
-        // Ensure at least one text field is available
+
         if (textControllers.isEmpty) {
-          textControllers.add(TextEditingController()); // Add a default text field if no images are picked
+          textControllers.add(TextEditingController());
         }
+        if (textSingleControllers.isEmpty) {
+          textSingleControllers.add(TextEditingController()); // Add a default separate text field
+        }
+
+        isLoading = false; // Set loading to false when data is loaded
       });
     }
   }
 
-  // Save the file details to Firebase
-  Future<void> _saveFileDetails() async {
-    List<String> texts = textControllers.map((controller) => controller.text).toList();
-    await _databaseRef.child("folders/${widget.folderKey}/files/${widget.fileKey}")
-        .update({"images": imageUrls, "rotations": rotationAngles, "texts": texts});
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("File updated successfully!")),
-    );
-
-  }
 
   // Pick multiple images
   Future<void> _pickImages() async {
+    setState(() {
+      isLoading = true; // Start loading
+    });
+
     final pickedFiles = await ImagePicker().pickMultiImage();
     setState(() {
       if (pickedFiles.isNotEmpty) {
@@ -91,14 +117,13 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
         textControllers.addAll(List.generate(pickedFiles.length, (index) => TextEditingController())); // Add text controllers for the new images
         originalImagePaths.addAll(pickedFiles.map((file) => file.path)); // Add the new paths to original image paths
       }
+      isLoading = false; // Stop loading after images are picked
     });
-    Navigator.pop(context);
   }
 
   // Reset the image to its original state
   void _resetImage(int index) {
     setState(() {
-      // Revert to the original image path and reset rotation and zoom level
       imageUrls[index] = originalImagePaths[index];
       rotationAngles[index] = 0;
       zoomLevel = 1;
@@ -196,7 +221,6 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
 
   // Delete a specific image
   void _deleteImage(int index) {
-
     setState(() {
       imageUrls.removeAt(index);
       rotationAngles.removeAt(index);
@@ -204,8 +228,6 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
       originalImagePaths.removeAt(index); // Remove original image path
     });
     _saveFileDetails(); // Update the Firebase database after deletion
-
-
   }
 
   // Generate PDF from images and texts
@@ -223,6 +245,13 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
         build: (pw.Context context) {
           List<pw.Widget> content = [];
 
+          // Add single text data (if present)
+          if (textSingleControllers.isNotEmpty && textSingleControllers[0].text.isNotEmpty) {
+            content.add(pw.Text(textSingleControllers[0].text, style: pw.TextStyle(fontSize: 16)));
+            content.add(pw.SizedBox(height: 20));
+          }
+
+          // Add images and associated text data
           for (int i = 0; i < imageUrls.length; i++) {
             if (textControllers[i].text.isNotEmpty) {
               content.add(pw.Text(textControllers[i].text, style: pw.TextStyle(fontSize: 16)));
@@ -273,7 +302,6 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
                     content: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-
                         TextButton(
                           onPressed: _pickImages,
                           child: const Text("Pick Images"),
@@ -297,7 +325,6 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
                       ],
                     ),
                   );
-
                 },
               );
             },
@@ -309,13 +336,17 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              // Display text field if no image is picked
-              if (imageUrls.isEmpty)
+              // Loading indicator before images are loaded
+              if (isLoading)
+                Center(child: CircularProgressIndicator()),
+
+              // Display text field for separate text data
+              if (!isLoading)
                 Column(
                   children: [
                     TextField(
-                      controller: textControllers.isNotEmpty ? textControllers[0] : TextEditingController(), // Ensure it's initialized
-                      decoration: const InputDecoration(labelText: "Enter text"),
+                      controller: textSingleControllers.isNotEmpty ? textSingleControllers[0] : TextEditingController(),
+                      decoration: const InputDecoration(labelText: "Enter separate text here"),
                       maxLines: 2,
                       enabled: isEditing,
                       style: const TextStyle(color: Colors.black),
@@ -325,53 +356,52 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
                 ),
 
               // Display images if available
-              if (imageUrls.isNotEmpty)
+              if (!isLoading && imageUrls.isNotEmpty)
                 Column(
-                  children: List.generate(imageUrls.length, (index) => Column(
-                    children: [
-                      TextField(
-                        controller: textControllers[index],
-                        decoration: const InputDecoration(labelText: "Enter text here"),
-                        maxLines: 2,
-                        enabled: isEditing,
-                        style: const TextStyle(color: Colors.black),
-                      ),
-                      const SizedBox(height: 10),
-                      InteractiveViewer(
-                        panEnabled: true,
-                        scaleEnabled: true,
-                        minScale: zoomLevel == 1 ? 1.0 : 3.0,
-                        maxScale: zoomLevel == 1 ? 4.0 : 9.0,
-                        child: Transform.rotate(
-                          angle: rotationAngles[index] * math.pi / 180,
-                          child: SizedBox(
-                            width: double.infinity,
-                            height: 250,
-                            child: Image.file(File(imageUrls[index]), fit: BoxFit.contain),
+                    children: List.generate(imageUrls.length, (index) => Column(
+                      children: [
+                        TextField(
+                          controller: textControllers[index],
+                          decoration: const InputDecoration(labelText: "Enter text here for image"),
+                          maxLines: 2,
+                          enabled: isEditing,
+                          style: const TextStyle(color: Colors.black),
+                        ),
+                        const SizedBox(height: 10),
+                        InteractiveViewer(
+                          panEnabled: true,
+                          scaleEnabled: true,
+                          minScale: zoomLevel == 1 ? 1.0 : 3.0,
+                          maxScale: zoomLevel == 1 ? 4.0 : 9.0,
+                          child: Transform.rotate(
+                            angle: rotationAngles[index] * math.pi / 180,
+                            child: SizedBox(
+                              width: double.infinity,
+                              height: 250,
+                              child: Image.file(File(imageUrls[index]), fit: BoxFit.contain),
+                            ),
                           ),
                         ),
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          IconButton(
-                            icon: Icon(Icons.rotate_right),
-                            onPressed: () => _rotateImage(index),
-                          ),
-                          IconButton(
-                            icon: Icon(Icons.crop),
-                            onPressed: () => _cropImage(index),
-                          ),
-                          IconButton(
-                            icon: Icon(Icons.delete),
-                            onPressed: () => _deleteImage(index),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                    ],
-                  )),
-                ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            IconButton(
+                              icon: Icon(Icons.rotate_right),
+                              onPressed: () => _rotateImage(index),
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.crop),
+                              onPressed: () => _cropImage(index),
+                            ),
+                            IconButton(
+                              icon: Icon(Icons.delete),
+                              onPressed: () => _deleteImage(index),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+                    ))),
               const SizedBox(height: 20),
             ],
           ),
@@ -386,9 +416,11 @@ class _FileDetailScreenState extends State<FileDetailScreen> {
       imageUrls.clear();
       rotationAngles.clear();
       textControllers.clear();
+      textSingleControllers.clear();
       originalImagePaths.clear();
-      // Add a new text field if no images are selected
+      // Add default text controllers
       textControllers.add(TextEditingController());
+      textSingleControllers.add(TextEditingController());
     });
     Navigator.pop(context);
   }
