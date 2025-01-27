@@ -5,6 +5,7 @@ import 'package:student_note/regScreen.dart';
 
 import 'ForgetPassword.dart';
 import 'HomeScreen.dart';
+import 'authentication/Google_auth_service.dart';
 import 'authentication/firebase_auth_services.dart';
 
 class loginScreen extends StatefulWidget {
@@ -23,6 +24,8 @@ class _loginScreenState extends State<loginScreen> {
   bool _isPasswordVisible = false;
 
   @override
+
+  final AuthService _authService = AuthService();
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -67,7 +70,7 @@ class _loginScreenState extends State<loginScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 80),
+              const SizedBox(height: 50),
 
               // Sign in button styled like Facebook
               _buildSignInButton(),
@@ -98,6 +101,50 @@ class _loginScreenState extends State<loginScreen> {
                   ),
                 ),
               ),
+
+              SizedBox(
+                height: 20,
+              ),
+
+
+
+              InkWell(
+                onTap: () async {
+                  try {
+                    User? user = await _authService.signInWithGoogle();
+                    if (user != null) {
+                      // Navigate to Welcome Page on success
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => HomeScreen(),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error signing in: $e')),
+                    );
+                  }
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: Colors.blue, // Border color
+                      width: 2.0, // Border width
+                    ),
+                    borderRadius: BorderRadius.circular(8.0), // Rounded corners
+                  ),
+                  width: 50,
+                  height: 50,
+                  child: Image.network(
+                    'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/800px-Google_%22G%22_logo.svg.png',
+                    fit: BoxFit.cover, // Ensures the image fits within the container
+                  ),
+                ),
+              ),
+
+
             ],
           ),
         ),

@@ -1,9 +1,12 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../authentication/firebase_auth_services.dart';
 import '../loginScreen.dart';
 import 'FileScreen.dart';
+
 
 
 class FolderScreen extends StatefulWidget {
@@ -242,17 +245,31 @@ class _FolderScreenState extends State<FolderScreen> {
         .toList();
   }
 
+  final GoogleSignIn _googleSignIn = GoogleSignIn(); // Move this outside
+
+// Update the logout function to include both Firebase and Google sign-out
   Future<void> _logout(BuildContext context) async {
     try {
       final SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.clear(); // Clear all saved preferences
 
-      await FirebaseAuth.instance.signOut(); // Sign out from Firebase
+      // Sign out from Firebase
+      await FirebaseAuth.instance.signOut();
+
+      // Sign out from Google (if the user was signed in with Google)
+      if (await _googleSignIn.isSignedIn()) {
+        await _googleSignIn.signOut();
+      }
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Signed out successfully')),
+      );
 
       // Navigate to the login screen
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const loginScreen()), // Ensure `LoginScreen` is correctly imported
+        MaterialPageRoute(builder: (context) => const loginScreen()),
       );
     } catch (e) {
       if (context.mounted) {
@@ -262,6 +279,8 @@ class _FolderScreenState extends State<FolderScreen> {
       }
     }
   }
+
+// Dialog to confirm the logout action
 
   void _showLogoutConfirmationDialog(BuildContext context) {
     showDialog(
@@ -283,7 +302,7 @@ class _FolderScreenState extends State<FolderScreen> {
                 style: TextStyle(fontSize: 16, color: Colors.red),
               ),
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pop(); // Close the dialog without logging out
               },
             ),
             TextButton(
@@ -292,7 +311,8 @@ class _FolderScreenState extends State<FolderScreen> {
                 style: TextStyle(fontSize: 16, color: Colors.green),
               ),
               onPressed: () {
-                _logout(context); // Clear shared preferences and log out
+                Navigator.of(context).pop(); // Close the dialog
+                _logout(context); // Proceed to log out
               },
             ),
           ],
@@ -300,6 +320,7 @@ class _FolderScreenState extends State<FolderScreen> {
       },
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
